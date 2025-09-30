@@ -35,8 +35,14 @@ public class TaskAssignment {
     @JoinColumn(name = "assigned_by")
     private Person assignedBy;
 
+    @Column(name = "status")
+    private String status = "NOT_STARTED";
+
     @Column(name = "assigned_at", updatable = false)
     private LocalDateTime assignedAt;
+
+    @Column(name = "updated_at", updatable = false)
+    private LocalDateTime updated_At;
 
     public Integer getTaskId() {
         return taskId;
@@ -84,5 +90,21 @@ public class TaskAssignment {
 
     public void setAssignedAt(LocalDateTime assignedAt) {
         this.assignedAt = assignedAt;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getUpdated_At() {
+        return updated_At;
+    }
+
+    public void setUpdated_At(LocalDateTime updated_At) {
+        this.updated_At = updated_At;
     }
 }

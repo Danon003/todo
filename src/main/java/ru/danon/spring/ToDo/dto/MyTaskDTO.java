@@ -1,19 +1,29 @@
 package ru.danon.spring.ToDo.dto;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
-public class TaskDTO {
+// MyTaskDTO.java
+public class MyTaskDTO {
     private Integer id;
     private String title;
     private String description;
     private LocalDateTime deadline;
     private String priority;
-    //private String userStatus;
     private Integer authorId;
-    private List<Integer> tagIds;
-    private List<String> tagNames;
+    private String userStatus; // ← статус именно этого пользователя
 
+    public MyTaskDTO() {}
+    public MyTaskDTO(Integer id, String title, String description,
+                     LocalDateTime deadline, String priority,
+                      Integer authorId, String userStatus) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.deadline = deadline;
+        this.priority = priority;
+        this.authorId = authorId;
+        this.userStatus = userStatus;
+    }
 
     public Integer getId() {
         return id;
@@ -55,6 +65,15 @@ public class TaskDTO {
         this.priority = priority;
     }
 
+
+    public String getUserStatus() {
+        return userStatus;
+    }
+
+    public void setUserStatus(String userStatus) {
+        this.userStatus = userStatus;
+    }
+
     public Integer getAuthorId() {
         return authorId;
     }
@@ -62,28 +81,4 @@ public class TaskDTO {
     public void setAuthorId(Integer authorId) {
         this.authorId = authorId;
     }
-
-    public List<Integer> getTagIds() {
-        return tagIds;
-    }
-
-    public void setTagIds(List<Integer> tagIds) {
-        this.tagIds = tagIds;
-    }
-
-    public List<String> getTagNames() {
-        return tagNames;
-    }
-
-    public void setTagNames(List<String> tagNames) {
-        this.tagNames = tagNames;
-    }
-//
-//    public String getUserStatus() {
-//        return userStatus;
-//    }
-//
-//    public void setUserStatus(String userStatus) {
-//        this.userStatus = userStatus;
-//    }
 }

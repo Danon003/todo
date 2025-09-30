@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,7 @@ import ru.danon.spring.ToDo.dto.AuthenticationDTO;
 import ru.danon.spring.ToDo.dto.PersonDTO;
 import ru.danon.spring.ToDo.models.Person;
 import ru.danon.spring.ToDo.security.JWTUtil;
+import ru.danon.spring.ToDo.services.PeopleService;
 import ru.danon.spring.ToDo.services.RegistrationService;
 import ru.danon.spring.ToDo.util.PersonValidator;
 
@@ -23,7 +25,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-
     private final PersonValidator personValidator;
     private final RegistrationService registrationService;
     private final JWTUtil jwtUtil;
@@ -53,7 +54,9 @@ public class AuthController {
 
         registrationService.register(person);
         String token = jwtUtil.generateToken(personDTO.getUsername());
+
         return Map.of("jwt-token", token);
+
     }
 
     @PostMapping("/login")

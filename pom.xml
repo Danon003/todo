@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>ru.danon.spring</groupId>
-	<artifactId>FirstSecurityApp</artifactId>
+	<artifactId>ToDo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>FirstSecurityApp</name>
+	<name>ToDo</name>
 	<description>Spring Boot with Spring Security</description>
 	<url/>
 	<licenses>
@@ -90,6 +90,17 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.2.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+			<version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
+
     </dependencies>
 
 	<build>
@@ -97,6 +108,14 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

@@ -1,6 +1,7 @@
 package ru.danon.spring.ToDo.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -9,6 +10,7 @@ import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.models.TaskAssignment;
 import ru.danon.spring.ToDo.models.id.TaskAssignmentId;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,4 +32,28 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
     void deleteByTaskId(Integer taskId);
 
     boolean existsByTaskAndUser(Task task, Person user);
+
+    @Modifying
+    @Query("UPDATE TaskAssignment ta SET ta.status = 'OVERDUE' " +
+            "WHERE ta.task.deadline < :now " +
+            "AND ta.status IN ('NOT_STARTED', 'IN_PROGRESS')")
+    void updateOverdueTaskAssignments(@Param("now") LocalDateTime now);
+
+    String getTaskStatusByUserIdAndTaskId(Integer userId, Integer taskId);
+
+    @Query("SELECT ta FROM TaskAssignment ta " +
+            "WHERE ta.task.deadline < :now " +
+            "AND ta.status IN ('NOT_STARTED', 'IN_PROGRESS')")
+    List<TaskAssignment> findOverdueTaskAssignments(@Param("now") LocalDateTime now);
+
+    @Query("SELECT ta FROM TaskAssignment ta " +
+            "WHERE ta.task.deadline BETWEEN :windowStart AND :windowEnd " +
+            "AND ta.status IN ('NOT_STARTED', 'IN_PROGRESS')")
+    List<TaskAssignment> findTasksWithDeadlineInWindow(
+            @Param("windowStart") LocalDateTime windowStart,
+            @Param("windowEnd") LocalDateTime windowEnd
+    );
+    List<TaskAssignment> findByTaskId(Integer taskId);
+    List<TaskAssignment> findByUserId(Integer userId);
+    Integer countByTaskId(Integer taskId);
 }

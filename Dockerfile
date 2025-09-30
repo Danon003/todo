@@ -1,16 +1,5 @@
-FROM eclipse-temurin:21-jdk-jammy
-LABEL authors="Danon"
-
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-
-COPY .mvn/ .mvn
-COPY mvnw pom.xml ./
-COPY src ./src
-
-RUN chmod +x mvnw
-
-RUN ./mvnw package -DskipTests
-
+COPY target/ToDo-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "target/todo-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-jar", "app.jar"]

@@ -26,13 +26,15 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final UserGroupRepository userGroupRepository;
     private final PeopleService peopleService;
+    private final NotificationProducerService notificationProducerService;
     private final ModelMapper modelMapper;
 
     @Autowired
-    public GroupService(GroupRepository groupRepository, UserGroupRepository userGroupRepository, PeopleService peopleService, ModelMapper modelMapper) {
+    public GroupService(GroupRepository groupRepository, UserGroupRepository userGroupRepository, PeopleService peopleService, NotificationProducerService notificationProducerService, ModelMapper modelMapper) {
         this.groupRepository = groupRepository;
         this.userGroupRepository = userGroupRepository;
         this.peopleService = peopleService;
+        this.notificationProducerService = notificationProducerService;
         this.modelMapper = modelMapper;
     }
 
@@ -89,6 +91,15 @@ public class GroupService {
         userGroup.setCreatedAt(LocalDateTime.now());
 
         userGroupRepository.save(userGroup);
+
+        //уведомление: вас добавили в группу
+        notificationProducerService.sendGroupAddedNotification(
+                studentId,
+                student.getRole(),
+                group.getName(),
+                groupId
+        );
+
     }
 
     @Transactional
@@ -97,17 +108,23 @@ public class GroupService {
             throw new RuntimeException("Student not in group");
         }
         userGroupRepository.deleteByGroupIdAndUserId(groupId, studentId);
+        Person person = peopleService.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Person not found"));
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        //уведомление: вас удалили из группы
+        notificationProducerService.sendGroupRemovedNotification(
+                studentId,
+                person.getRole(),
+                group.getName(),
+                groupId
+        );
     }
 
     @Transactional
     public void removeGroup(Integer groupId) {
         groupRepository.deleteById(groupId);
-    }
-
-    private List<PersonResponseDTO> convertToResponsePerson(List<Person> allUsers) {
-        return allUsers.stream()
-                .map(user -> modelMapper.map(user, PersonResponseDTO.class))
-                .collect(Collectors.toList());
     }
 
     public GroupResponseDTO findById(Integer groupId) {
@@ -120,6 +137,12 @@ public class GroupService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         UserGroup userGroup = userGroupRepository.findUserGroupByUser(user);
         return userGroup.getGroup().getId();
+    }
+
+    private List<PersonResponseDTO> convertToResponsePerson(List<Person> allUsers) {
+        return allUsers.stream()
+                .map(user -> modelMapper.map(user, PersonResponseDTO.class))
+                .collect(Collectors.toList());
     }
 
     private GroupResponseDTO convertToGroupDTO(Group group) {

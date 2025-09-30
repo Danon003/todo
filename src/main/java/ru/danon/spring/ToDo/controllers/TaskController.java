@@ -6,10 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import ru.danon.spring.ToDo.dto.StatusDTO;
-import ru.danon.spring.ToDo.dto.TaskDTO;
-import ru.danon.spring.ToDo.dto.TaskResponseDTO;
-import ru.danon.spring.ToDo.dto.TaskStatDTO;
+import ru.danon.spring.ToDo.dto.*;
 import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.services.TaskService;
 
@@ -29,18 +26,21 @@ public class TaskController {
         this.modelMapper = modelMapper;
     }
 
+    //работает
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping()
-    public TaskResponseDTO createTask(@RequestBody TaskDTO taskDTO, Authentication authentication) {
+    public TaskResponseDTO createTask(@RequestBody MyTaskDTO taskDTO, Authentication authentication) {
         return taskService.createTask(taskDTO, authentication.getName());
     }
 
+    //работает
     @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{taskId}")
     public void deleteTask(@PathVariable Integer taskId) {
          taskService.deleteTask(taskId);
     }
 
+    //работает
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping()
     public ResponseEntity<List<TaskDTO>> getTasks() {
@@ -50,13 +50,21 @@ public class TaskController {
                 .collect(Collectors.toList()));
     }
 
-
+    //работает
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/{taskId}")
     public ResponseEntity<TaskDTO> getTask(@PathVariable Integer taskId) {
         return ResponseEntity.ok(convertToTaskDTO(taskService.findTaskById(taskId)));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/student/{userId}")
+    public ResponseEntity<List<MyTaskDTO>> getTasksStudent(@PathVariable Integer userId) {
+        List<MyTaskDTO> tasks = taskService.findUserTasks(userId);
+        return ResponseEntity.ok(tasks);
+    }
+
+    //работает
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/assign/{taskID}/{userId}")
     public ResponseEntity<?> assignTask(@PathVariable Integer taskID,
@@ -66,6 +74,7 @@ public class TaskController {
        return ResponseEntity.ok().build();
     }
 
+    //работает
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/assign/{taskID}/group/{groupId}")
     public ResponseEntity<Void> assignTaskForGroup(@PathVariable Integer taskID,
@@ -75,6 +84,7 @@ public class TaskController {
         return ResponseEntity.ok().build();
     }
 
+    //работает
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/{id}/{taskId}/status")
     public ResponseEntity<TaskStatDTO> getStatusTask(@PathVariable Integer taskId,
@@ -84,20 +94,21 @@ public class TaskController {
         return ResponseEntity.ok(taskService.findStatusTask(id, taskId, filter));
     }
 
+    //работает
     @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/my")
-    public ResponseEntity<List<TaskDTO>> getTasksStudent(Authentication authentication) {
-        return ResponseEntity.ok(taskService.findMyTasks(authentication.getName())
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList()));
+    public ResponseEntity<List<MyTaskDTO>> getTasksStudent(Authentication authentication) {
+        List<MyTaskDTO> tasks = taskService.findMyTasks(authentication.getName());
+        return ResponseEntity.ok(tasks);
     }
 
+    //работает
     @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/my/{taskId}")
-    public ResponseEntity<TaskDTO> getTasks(@PathVariable Integer taskId, Authentication authentication) {
-        return ResponseEntity.ok(convertToTaskDTO(taskService.findMyTasksById(taskId, authentication.getName())));
+    public ResponseEntity<MyTaskDTO> getMyTask(@PathVariable Integer taskId, Authentication authentication) {
+        return ResponseEntity.ok(taskService.findMyTasksById(taskId, authentication.getName()));
     }
+
 
     @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/my/{taskId}/status")
@@ -109,11 +120,10 @@ public class TaskController {
 
     @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/my/{taskId}/status")
-    public ResponseEntity<TaskDTO> changeStatusMyTask(@PathVariable Integer taskId,
+    public ResponseEntity<MyTaskDTO> changeStatusMyTask(@PathVariable Integer taskId,
                                             @RequestBody StatusDTO statusDTO,
                                                       Authentication authentication) {
-        return ResponseEntity.ok(convertToTaskDTO(
-                taskService.changeMyTask(taskId, convertDTOToStatus(statusDTO).getStatus(), authentication.getName())));
+        return ResponseEntity.ok(taskService.changeMyTask(taskId, statusDTO.getStatus(), authentication.getName()));
     }
 
     @PreAuthorize("hasRole('STUDENT')")
@@ -133,11 +143,10 @@ public class TaskController {
         return modelMapper.map(task, TaskDTO.class);
     }
 
-    private Task convertDTOToStatus(StatusDTO statusDTO) {
-        return modelMapper.map(statusDTO, Task.class);
+    private MyTaskDTO convertToMyTaskDTO(Task task) {
+        return modelMapper.map(task, MyTaskDTO.class);
     }
-
-    private StatusDTO convertToStatusDTO(Task statusMyTask) {
+    private StatusDTO convertToStatusDTO(MyTaskDTO statusMyTask) {
         return modelMapper.map(statusMyTask, StatusDTO.class);
     }
 }

@@ -32,9 +32,6 @@ public class Task {
     @Column(name = "priority")
     private String priority;
 
-    @Column(name = "status")
-    private String status = "NOT_STARTED";
-
     @ManyToOne
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "author_id")
@@ -50,9 +47,6 @@ public class Task {
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskTag> taskTags;
-
-    @OneToOne(mappedBy = "task", cascade = CascadeType.ALL)
-    private CalendarEvent calendarEvent;
 
 
     public Task() {}
@@ -97,14 +91,6 @@ public class Task {
         this.priority = priority;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
     public Person getAuthor() {
         return author;
     }
@@ -138,11 +124,4 @@ public class Task {
         this.taskTags = taskTags;
     }
 
-    public CalendarEvent getCalendarEvent() {
-        return calendarEvent;
-    }
-
-    public void setCalendarEvent(CalendarEvent calendarEvent) {
-        this.calendarEvent = calendarEvent;
-    }
 }

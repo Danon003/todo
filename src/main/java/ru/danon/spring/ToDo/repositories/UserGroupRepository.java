@@ -22,4 +22,6 @@ public interface UserGroupRepository extends JpaRepository<UserGroup, UserGroupI
                                   @Param("userId") Integer userId);
 
     UserGroup findUserGroupByUser(Person user);
+
+    Integer countByGroupId(Integer groupId);
 }

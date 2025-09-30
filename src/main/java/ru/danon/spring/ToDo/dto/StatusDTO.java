@@ -1,13 +1,13 @@
 package ru.danon.spring.ToDo.dto;
 
 public class StatusDTO {
-    String status;
+    String userStatus;
 
     public String getStatus() {
-        return status;
+        return userStatus;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setStatus(String userStatus) {
+        this.userStatus = userStatus;
     }
 }

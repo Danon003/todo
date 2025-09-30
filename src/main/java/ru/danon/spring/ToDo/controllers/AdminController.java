@@ -5,15 +5,16 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import ru.danon.spring.ToDo.dto.IdDTO;
-import ru.danon.spring.ToDo.dto.PersonDTO;
-import ru.danon.spring.ToDo.dto.PersonResponseDTO;
+import ru.danon.spring.ToDo.dto.*;
 import ru.danon.spring.ToDo.models.Person;
+import ru.danon.spring.ToDo.models.RoleAuditLog;
 import ru.danon.spring.ToDo.services.AdminService;
 import ru.danon.spring.ToDo.services.PeopleService;
 
+import javax.management.relation.Role;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -86,6 +87,17 @@ public class AdminController {
         return ResponseEntity.ok(convertToResponsePerson(adminService.getUsersByRole(role)));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/role-audit-log")
+    public ResponseEntity<List<RoleAuditLog>> getRoleAuditLog() {
+        return ResponseEntity.ok(adminService.getRoleAuditLogs());
+    }
+
+    @GetMapping("/statistic")
+    public ResponseEntity<StatisticDTO> getStatistic(Authentication auth ){
+        return ResponseEntity.ok(adminService.getStatistic(auth));
+    }
+
     private Person convertToPerson(PersonDTO personDTO) {
         return modelMapper.map(personDTO, Person.class);
     }
@@ -96,5 +108,4 @@ public class AdminController {
                 .collect(Collectors.toList());
 
     }
-
 }

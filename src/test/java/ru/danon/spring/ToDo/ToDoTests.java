@@ -1,4 +1,4 @@
-package ru.danon.spring.ToDoApp;
+package ru.danon.spring.ToDo;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

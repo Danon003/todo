@@ -2,8 +2,11 @@ package ru.danon.spring.ToDo.services;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.danon.spring.ToDo.dto.MyTaskDTO;
 import ru.danon.spring.ToDo.dto.TaskDTO;
 import ru.danon.spring.ToDo.dto.TaskResponseDTO;
 import ru.danon.spring.ToDo.dto.TaskStatDTO;
@@ -26,26 +29,26 @@ public class TaskService {
     private final PeopleService peopleService;
     private final GroupService groupService;
     private final TaskRepository taskRepository;
-    private final TagRepository tagRepository;
     private final TaskTagRepository taskTagRepository;
     private final TaskAssignmentRepository taskAssignmentRepository;
+    private final NotificationProducerService notificationProducerService;
     private final ModelMapper modelMapper;
 
 
     @Autowired
-    public TaskService(PeopleService peopleService, GroupService groupService, TaskRepository taskRepository, TagRepository tagRepository, TaskTagRepository taskTagRepository, TaskAssignmentRepository taskAssignmentRepository, ModelMapper modelMapper) {
+    public TaskService(PeopleService peopleService, GroupService groupService, TaskRepository taskRepository, TaskTagRepository taskTagRepository, TaskAssignmentRepository taskAssignmentRepository, NotificationProducerService notificationProducerService, ModelMapper modelMapper) {
         this.peopleService = peopleService;
         this.groupService = groupService;
         this.taskRepository = taskRepository;
-        this.tagRepository = tagRepository;
         this.taskTagRepository = taskTagRepository;
         this.taskAssignmentRepository = taskAssignmentRepository;
+        this.notificationProducerService = notificationProducerService;
         this.modelMapper = modelMapper;
 
     }
 
     @Transactional
-    public TaskResponseDTO createTask(TaskDTO taskDTO, String username) {
+    public TaskResponseDTO createTask(MyTaskDTO taskDTO, String username) {
 
         Person author = peopleService.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Author not found"));
@@ -56,20 +59,12 @@ public class TaskService {
         task.setDeadline(taskDTO.getDeadline());
         task.setPriority(taskDTO.getPriority());
         task.setAuthor(author);
-        task.setStatus("NOT_STARTED");
         task.setCreatedAt(LocalDateTime.now());
 
+        TaskAssignment taskAssignment = new TaskAssignment();
+        taskAssignment.setStatus("NOT_STARTED");
 
         Task savedTask = taskRepository.save(task);
-
-        // Добавляем теги к задаче
-        if (taskDTO.getTagIds() != null) {
-            for (Integer tagId : taskDTO.getTagIds()) {
-                Tag tag = tagRepository.findById(tagId)
-                        .orElseThrow(() -> new RuntimeException("Tag not found"));
-                addTagToTask(savedTask.getId(), tagId);
-            }
-        }
 
         return convertToResponseDTO(savedTask);
     }
@@ -121,6 +116,14 @@ public class TaskService {
         taskAssignment.setAssignedAt(LocalDateTime.now());
 
         taskAssignmentRepository.save(taskAssignment);
+
+        //уведомление: вам назначена новая задача
+        notificationProducerService.sendTaskAssignedNotification(
+                userId,
+                user.getRole(),
+                task.getTitle(),
+                taskId
+        );
     }
 
     //назначить таску группе по её Id (функция для препода)
@@ -135,83 +138,163 @@ public class TaskService {
     //получить статус таски (функция для препода)
     public TaskStatDTO findStatusTask(Integer id, Integer taskId, String filter) {
         TaskStatDTO taskDTO = new TaskStatDTO();
+        taskDTO.setId(taskId);
 
         if ("student".equalsIgnoreCase(filter)) {
+            // Получаем назначение → статус у него
             TaskAssignment assignment = taskAssignmentRepository.findByUserIdAndTaskId(id, taskId)
-                    .orElseThrow(() -> new RuntimeException("Task not assigned to user"));
+                    .orElseThrow(() -> new RuntimeException("Задача не назначена пользователю"));
 
-            taskDTO.setStatus(assignment.getTask().getStatus());
+            taskDTO.setStatus(assignment.getStatus());
             taskDTO.setUserId(id);
-        }
-        else if ("group".equalsIgnoreCase(filter)) {
+
+        } else if ("group".equalsIgnoreCase(filter)) {
+            // Получаем все назначения задачи в группе
             List<TaskAssignment> assignments = taskAssignmentRepository.findByGroupIdAndTaskId(id, taskId);
 
+            // Инициализируем счётчики по всем возможным статусам
             Map<String, Integer> statusStatistics = new HashMap<>();
             for (TaskStatus status : TaskStatus.values()) {
                 statusStatistics.put(status.name(), 0);
             }
 
+            // Считаем статусы из назначений
             assignments.forEach(assignment -> {
-                String status = assignment.getTask().getStatus();
-                statusStatistics.put(status, statusStatistics.get(status) + 1);
+                String status = assignment.getStatus();
+                if (statusStatistics.containsKey(status)) {
+                    statusStatistics.put(status, statusStatistics.get(status) + 1);
+                } else {
+                    // На случай, если статус не в enum (например, OVERDUE)
+                    statusStatistics.merge("OTHER", 1, Integer::sum);
+                }
             });
 
             taskDTO.setStatusStatistics(statusStatistics);
             taskDTO.setGroupId(id);
-        }
-        else {
-            throw new RuntimeException("Invalid filter value. Use 'student' or 'group'");
+
+        } else {
+            throw new RuntimeException("Неверный фильтр. Используйте 'student' или 'group'");
         }
 
-        taskDTO.setId(taskId);
         return taskDTO;
     }
 
-    //юзер ищет свои таски
-    public List<Task> findMyTasks(String currentUsername) {
 
-        Person assignedBy = peopleService.findByUsername(currentUsername)
-                .orElseThrow(() -> new RuntimeException("Current user not found in DB"));
+    public List<MyTaskDTO> findMyTasks(String username) {
+        Person user = peopleService.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
 
-        return taskAssignmentRepository.findByUser(assignedBy)
-                .stream()
-                .map(TaskAssignment::getTask)
-                .collect(Collectors.toList());
+        List<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user);
+
+        return assignments.stream().map(assignment -> {
+            Task task = assignment.getTask();
+            String status = assignment.getStatus();
+
+            return new MyTaskDTO(
+                    task.getId(),
+                    task.getTitle(),
+                    task.getDescription(),
+                    task.getDeadline(),
+                    task.getPriority(),
+                    task.getAuthor().getId(),
+                    status
+            );
+        }).collect(Collectors.toList());
+    }
+
+    public List<MyTaskDTO> findUserTasks(Integer userId) {
+        Person user = peopleService.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        List<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user);
+
+        return assignments.stream().map(assignment -> {
+            Task task = assignment.getTask();
+            String status = assignment.getStatus();
+
+            return new MyTaskDTO(
+                    task.getId(),
+                    task.getTitle(),
+                    task.getDescription(),
+                    task.getDeadline(),
+                    task.getPriority(),
+                    task.getAuthor().getId(),
+                    status
+            );
+        }).collect(Collectors.toList());
     }
 
     //юзер ищет свою конкретную таску
-    public Task findMyTasksById(Integer taskId, String currentUsername) {
-        Integer myId = peopleService.findByUsername(currentUsername).get().getId();
-        TaskAssignmentId id = new TaskAssignmentId(taskId, myId);
+    public MyTaskDTO findMyTasksById(Integer taskId, String currentUsername) {
+        Person currentUser = peopleService.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return taskAssignmentRepository.findById(id)
-                .map(TaskAssignment::getTask)
+        // Создаём составной ID
+        TaskAssignmentId assignmentId = new TaskAssignmentId(taskId, currentUser.getId());
+
+        // Находим назначение задачи (включает статус!)
+        TaskAssignment assignment = taskAssignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Task not found or not assigned to you"));
+
+        // Достаём саму задачу и её статус
+        Task task = assignment.getTask();
+        String status = assignment.getStatus();
+
+        return new MyTaskDTO(
+                task.getId(),
+                task.getTitle(),
+                task.getDescription(),
+                task.getDeadline(),
+                task.getPriority(),
+                task.getAuthor().getId(),
+                status
+        );
     }
 
+
     //юзер получает статус конкретной таски
-    public Task findStatusMyTask(Integer taskId, String currentUsername) {
+    public MyTaskDTO findStatusMyTask(Integer taskId, String currentUsername) {
         Integer myId = peopleService.findByUsername(currentUsername).get().getId();
         TaskAssignmentId id = new TaskAssignmentId(taskId, myId);
         TaskAssignment assignment = taskAssignmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found or not assigned to you"));
 
         Task task = assignment.getTask();
-        return task;
+        String status = assignment.getStatus();
+        return new MyTaskDTO(
+                task.getId(),
+                task.getTitle(),
+                task.getDescription(),
+                task.getDeadline(),
+                task.getPriority(),
+                task.getAuthor().getId(),
+                status
+        );
     }
 
     //юзер меняет статус конкретной таски на переданный status
     @Transactional
-    public Task changeMyTask(Integer taskId, String status, String currentUsername) {
+    public MyTaskDTO changeMyTask(Integer taskId, String status, String currentUsername) {
         Integer myId = peopleService.findByUsername(currentUsername).get().getId();
         TaskAssignmentId id = new TaskAssignmentId(taskId, myId);
+
         TaskAssignment assignment = taskAssignmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("TaskAssignment not found"));
+                .orElseThrow(() -> new RuntimeException("Task not found or not assigned to you"));
+
+        assignment.setStatus(status);  // ← Меняем статус у назначения
+        taskAssignmentRepository.save(assignment);
+
 
         Task task = assignment.getTask();
-        task.setStatus(status);
-
-        return taskRepository.save(task);
+        return new MyTaskDTO(
+                task.getId(),
+                task.getTitle(),
+                task.getDescription(),
+                task.getDeadline(),
+                task.getPriority(),
+                task.getAuthor().getId(),
+                status
+        );
     }
 
     //юзер делится таской с другим юзером
@@ -232,34 +315,11 @@ public class TaskService {
         if (taskAssignmentRepository.existsById(receiverId))
             throw new RuntimeException("User already has this task");
 
+        //уведомление: вам назначена новая задача
         assignTask(taskId, userId, currentUsername);
 
     }
 
-    @Transactional
-    public void addTagToTask(Integer taskId, Integer tagId) {
-        if (taskTagRepository.existsById(new TaskTagId(taskId, tagId))) {
-            throw new RuntimeException("Task tag already exists");
-        }
-
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-        Tag tag = tagRepository.findById(tagId)
-                .orElseThrow(() -> new RuntimeException("Tag not found"));
-
-        TaskTag taskTag = new TaskTag();
-        taskTag.setTaskId(taskId);
-        taskTag.setTagId(tagId);
-        taskTag.setTask(task);
-        taskTag.setTag(tag);
-
-        taskTagRepository.save(taskTag);
-    }
-
-    @Transactional
-    public void removeTagFromTask(Integer taskId, Integer tagId) {
-        taskTagRepository.deleteById(new TaskTagId(taskId, tagId));
-    }
     private TaskResponseDTO convertToResponseDTO(Task task){
         return modelMapper.map(task, TaskResponseDTO.class);
     }
@@ -284,6 +344,57 @@ public class TaskService {
         return groupTasks;
     }
 
+    @Modifying
+    @Scheduled(fixedRate = 120000) //каждые две минуты
+    @Transactional
+    public void updateOverdueTasks() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Получаем все задания, которые станут просроченными
+        List<TaskAssignment> overdueAssignments = taskAssignmentRepository.findOverdueTaskAssignments(now);
+
+        // Обновляем статус
+        taskAssignmentRepository.updateOverdueTaskAssignments(now);
+
+        // Отправляем уведомления
+        for (TaskAssignment assignment : overdueAssignments) {
+            notificationProducerService.sendTaskOverdueNotification(
+                    assignment.getUserId(),
+                    "ROLE_STUDENT",
+                    assignment.getTask().getTitle(),
+                    assignment.getTask().getId()
+            );
+        }
+    }
+
+    @Scheduled(fixedRate = 3600000)
+    public void checkApproachingDeadlines() {
+        LocalDateTime now = LocalDateTime.now();
+
+        checkDeadlineWindow(now, "через 2 дня", "TASK_DEADLINE_2D", 48);   // 48–46 часов
+        checkDeadlineWindow(now, "через 1 день", "TASK_DEADLINE_1D", 24);   // 24–22 часа
+        checkDeadlineWindow(now, "через 12 часов", "TASK_DEADLINE_12H", 12); // 12–10 часов
+    }
+
+    private void checkDeadlineWindow(LocalDateTime now, String label, String eventType, int hoursBefore) {
+        LocalDateTime windowStart = now.plusHours(hoursBefore - 1); // начало окна
+        LocalDateTime windowEnd = now.plusHours(hoursBefore);       // конец окна
+
+        List<TaskAssignment> assignments = taskAssignmentRepository.findTasksWithDeadlineInWindow(
+                windowStart, windowEnd
+        );
+
+        for (TaskAssignment assignment : assignments) {
+            notificationProducerService.sendTaskDeadlineApproachingNotification(
+                    assignment.getUserId(),
+                    "ROLE_STUDENT",
+                    assignment.getTask().getTitle(),
+                    assignment.getTask().getId(),
+                    label,
+                    eventType
+            );
+        }
+    }
 
 }
 

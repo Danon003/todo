@@ -9,7 +9,7 @@ public class TaskResponseDTO {
     private String description;
     private LocalDateTime deadline;
     private String priority;
-    private String status;
+    //private String userStatus;
     private AuthorDTO author;
     private LocalDateTime createdAt;
 
@@ -83,13 +83,13 @@ public class TaskResponseDTO {
         this.priority = priority;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
+//    public String getUserStatus() {
+//        return userStatus;
+//    }
+//
+//    public void setUserStatus(String userStatus) {
+//        this.userStatus = userStatus;
+//    }
 
     public AuthorDTO getAuthor() {
         return author;
