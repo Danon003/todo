@@ -27,15 +27,19 @@ public class Group {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "teacher_id", referencedColumnName = "id")
+    private Person teacher;
+
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserGroup> userGroups;
 
     public Group() {}
 
-    public Group(String name, String description) {
+    public Group(String name, String description, Person teacher) {
         this.name = name;
         this.description = description;
-
+        this.teacher = teacher;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -76,5 +80,13 @@ public class Group {
 
     public void setUserGroups(List<UserGroup> userGroups) {
         this.userGroups = userGroups;
+    }
+
+    public Person getTeacher() {
+        return teacher;
+    }
+
+    public void setTeacher(Person teacher) {
+        this.teacher = teacher;
     }
 }

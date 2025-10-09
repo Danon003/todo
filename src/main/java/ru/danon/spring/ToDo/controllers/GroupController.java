@@ -1,20 +1,24 @@
 package ru.danon.spring.ToDo.controllers;
 
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import ru.danon.spring.ToDo.dto.GroupResponseDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.TaskResponseDTO;
 import ru.danon.spring.ToDo.models.Group;
+import ru.danon.spring.ToDo.models.Person;
 import ru.danon.spring.ToDo.services.AdminService;
 import ru.danon.spring.ToDo.services.GroupService;
 import ru.danon.spring.ToDo.services.TaskService;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/group")
@@ -23,18 +27,21 @@ public class GroupController {
     private final GroupService groupService;
     private final AdminService adminService;
     private final TaskService taskService;
+    private final ModelMapper modelMapper;
 
     @Autowired
-    public GroupController(GroupService groupService, AdminService adminService, TaskService taskService) {
+    public GroupController(GroupService groupService, AdminService adminService, TaskService taskService, ModelMapper modelMapper) {
         this.groupService = groupService;
         this.adminService = adminService;
         this.taskService = taskService;
+        this.modelMapper = modelMapper;
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER') or hasRole('STUDENT')")
     @GetMapping()
-    public List<GroupResponseDTO> getAllGroups(){
-        return groupService.findAll();
+    public List<GroupResponseDTO> getAllGroups(Authentication auth){
+
+        return groupService.findAll(auth);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -85,13 +92,32 @@ public class GroupController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER') or hasRole('STUDENT')")
     @GetMapping("/{groupId}")
-    public ResponseEntity<GroupResponseDTO> getGroup(@PathVariable Integer groupId) {
-        return ResponseEntity.ok(groupService.findById(groupId));
+    public ResponseEntity<GroupResponseDTO> getGroup(@PathVariable Integer groupId, Authentication auth) {
+        return ResponseEntity.ok(groupService.findById(groupId, auth));
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
     @GetMapping("/{groupId}/tasks")
     public ResponseEntity<Set<TaskResponseDTO>> getGroupTasks(@PathVariable Integer groupId) {
         return ResponseEntity.ok(taskService.getGroupTasks(groupId));
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/my-students")
+    public ResponseEntity<List<PersonResponseDTO>> getStudents(Authentication auth) {
+        return ResponseEntity.ok(convertToResponsePerson(groupService.findByTeacherId(auth)));
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
+    @GetMapping("/students_has_group")
+    public ResponseEntity<List<PersonResponseDTO>> getStudentsHasGroup() {
+        return ResponseEntity.ok(groupService.getStudentsHasGroup());
+    }
+
+
+    private List<PersonResponseDTO> convertToResponsePerson(List<Person> allUsers) {
+        return allUsers.stream()
+                .map(user -> modelMapper.map(user, PersonResponseDTO.class))
+                .collect(Collectors.toList());
     }
 }

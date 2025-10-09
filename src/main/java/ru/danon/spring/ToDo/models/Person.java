@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -14,7 +15,7 @@ public class Person {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private int id;
+    private Integer id;
 
     @NotEmpty
     @Size(min = 2, max = 100, message = "Имя должно быть от 2 до 100 символов")
@@ -35,13 +36,16 @@ public class Person {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @OneToMany(mappedBy = "teacher", fetch = FetchType.LAZY)
+    private List<Group> taughtGroups;
+
     public Person() {}
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -83,5 +87,13 @@ public class Person {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public List<Group> getTaughtGroups() {
+        return taughtGroups;
+    }
+
+    public void setTaughtGroups(List<Group> taughtGroups) {
+        this.taughtGroups = taughtGroups;
     }
 }

@@ -7,9 +7,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import ru.danon.spring.ToDo.dto.*;
+import ru.danon.spring.ToDo.models.Person;
 import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.services.TaskService;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -134,6 +136,14 @@ public class TaskController {
         taskService.shareTask(taskId, userId, authentication.getName());
         return ResponseEntity.ok().build();
     }
+
+    @PreAuthorize("hasRole('STUDENT') or hasRole('TEACHER')")
+    @GetMapping("/getListTask/{taskId}")
+    public ResponseEntity<List<PersonResponseDTO>> getListTask(@PathVariable Integer taskId, Authentication authentication) {
+        return ResponseEntity.ok(taskService.getUsersWithTask(taskId, authentication));
+    }
+
+
 
     private TaskDTO convertToTaskDTO(Task task) {
         return modelMapper.map(task, TaskDTO.class);

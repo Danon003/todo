@@ -6,7 +6,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.DashboardStatsDTO;
-import ru.danon.spring.ToDo.dto.MyTaskDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.StatisticDTO;
 import ru.danon.spring.ToDo.models.*;
@@ -27,9 +26,10 @@ public class AdminService {
     private final TaskService taskService;
     private final TaskAssignmentRepository taskAssignmentRepository;
     private final UserGroupRepository userGroupRepository;
+    private final GroupService groupService;
 
     @Autowired
-    public AdminService(PeopleService peopleService, GroupRepository groupRepository, NotificationProducerService notificationProducerService, RoleAuditLogRepository roleAuditLogRepository, TaskRepository taskRepository, TaskService taskService, TaskAssignmentRepository taskAssignmentRepository, UserGroupRepository userGroupRepository) {
+    public AdminService(PeopleService peopleService, GroupRepository groupRepository, NotificationProducerService notificationProducerService, RoleAuditLogRepository roleAuditLogRepository, TaskRepository taskRepository, TaskService taskService, TaskAssignmentRepository taskAssignmentRepository, UserGroupRepository userGroupRepository, GroupService groupService) {
         this.peopleService = peopleService;
         this.groupRepository = groupRepository;
         this.notificationProducerService = notificationProducerService;
@@ -40,6 +40,7 @@ public class AdminService {
 
         this.taskAssignmentRepository = taskAssignmentRepository;
         this.userGroupRepository = userGroupRepository;
+        this.groupService = groupService;
     }
 
     public List<Person> getAllUsers() {
@@ -52,6 +53,7 @@ public class AdminService {
         group.setName(groupName);
         group.setDescription(description);
         group.setCreatedAt(LocalDateTime.now());
+        group.setTeacher(null);
 
         groupRepository.save(group);
     }
@@ -66,6 +68,14 @@ public class AdminService {
         log.setNewRole(newRole);
         log.setChangedAt(LocalDateTime.now());
 
+        if(user.getRole().equals("ROLE_TEACHER")){
+            List<Group> groups = groupRepository.findByTeacherId(userId);
+            for(Group group : groups) {
+                group.setTeacher(null);
+                groupRepository.save(group);
+            }
+        }
+
         user.setRole(newRole);
         peopleService.save(user);
 
@@ -76,6 +86,29 @@ public class AdminService {
         );
 
         roleAuditLogRepository.save(log);
+    }
+
+    @Transactional
+    public void assignTeacherToGroup(Integer groupId, Integer userId) {
+        Group group = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException("Group not found with id"));
+        Person user = peopleService.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        Person previousTeacher = group.getTeacher();
+
+        group.setTeacher(user);
+
+        groupRepository.save(group);
+
+        if (previousTeacher != null && !previousTeacher.getId().equals(userId)) {
+            notificationProducerService.sendTeacherRemovedNotification(
+                    previousTeacher.getId(),
+                    group.getName()
+            );
+        }
+
+        notificationProducerService.sendTeacherAssignNotification(
+                user.getId(),
+                group.getName()
+        );
     }
 
     @Transactional
@@ -111,32 +144,6 @@ public class AdminService {
         return roleAuditLogRepository.findAll();
     }
 
-    public StatisticDTO getStatistic(Authentication auth) {
-        if (auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_TEACHER"))) {
-            return new StatisticDTO(
-                    peopleService.getUserInfo(auth.getName()),
-                    groupRepository.findAll().size(),
-                    peopleService.findAll().size(),
-                    taskService.findAllTasks().size()
-            );
-        } else if (auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            return new StatisticDTO(
-                    peopleService.getUserInfo(auth.getName()),
-                    groupRepository.findAll().size(),
-                    peopleService.findAll().size(),
-                    taskService.findAllTasks().size()
-            );
-        } else if (auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
-            return new StatisticDTO(
-                    peopleService.getUserInfo(auth.getName()),
-                    0,
-                    0,
-                    taskService.findMyTasks(auth.getName()).size()
-            );
-        }
-        return null;
-    }
-
     public DashboardStatsDTO getDashboardStats(Authentication auth) {
         String username = auth.getName();
         PersonResponseDTO userInfo = peopleService.getUserInfo(username);
@@ -164,55 +171,119 @@ public class AdminService {
                 }
                 stats.setRoleStatistics(roleStats);
 
-                // Активные задачи (все назначения где статус не COMPLETED)
-                int activeTasks = 0;
-                List<Task> allTasks = taskService.findAllTasks();
-                for (Task task : allTasks) {
-                    // Для каждой задачи получаем все назначения
-                    List<TaskAssignment> assignments = taskAssignmentRepository.findByTaskId(task.getId());
-                    for (TaskAssignment assignment : assignments) {
-                        if (!"COMPLETED".equals(assignment.getStatus())) {
-                            activeTasks++;
-                        }
-                    }
-                }
-                stats.setActiveTasks(activeTasks);
+//                // Активные задачи (все назначения где статус не COMPLETED)
+//                int activeTasks = 0;
+//                List<Task> allTasks = taskService.findAllTasks();
+//                for (Task task : allTasks) {
+//                    // Для каждой задачи получаем все назначения
+//                    List<TaskAssignment> assignments = taskAssignmentRepository.findByTaskId(task.getId());
+//                    for (TaskAssignment assignment : assignments) {
+//                        if (!"COMPLETED".equals(assignment.getStatus())) {
+//                            activeTasks++;
+//                        }
+//                    }
+//                }
+//                stats.setActiveTasks(activeTasks);
+//                stats.setCompletedTasks(allTasks.size() - activeTasks);
                 break;
 
             case "ROLE_TEACHER":
                 Person teacher = peopleService.findByUsername(username)
                         .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
-                // Группы преподавателя (где он является создателем)
+                // Группы преподавателя
+                List<Group> teacherGroups = groupRepository.findByTeacherId(teacher.getId());
+                stats.setTotalGroups(teacherGroups.size());
 
+                // Студенты преподавателя (все студенты из его групп)
+                List<Person> teacherStudents = groupService.findByTeacherId(auth);
+                stats.setTotalStudents(teacherStudents.size());
 
-                // Общее количество студентов в группах преподавателя
+                // Задачи преподавателя
+                List<Task> teacherTasks = taskRepository.findByAuthorId(teacher.getId());
+                stats.setMyCreatedTasks(teacherTasks.size());
 
+                // 1. Средний прогресс студентов
+                double totalStudentProgress = 0;
+                int studentsWithTasksCount = 0;
 
-                // Статистика задач - все задачи, созданные преподавателем
-                int teacherTasksCount = 0;
-                int completedTeacherTasks = 0;
+                // 2. Нагрузка (мин/макс/среднее)
+                int totalStudentTasks = 0;
+                int minTasks = Integer.MAX_VALUE;
+                int maxTasks = 0;
 
-                List<Task> allTeacherTasks = taskRepository.findByAuthorId(teacher.getId());
-                for (Task task : allTeacherTasks) {
-                    teacherTasksCount++;
-                    // Проверяем статусы всех назначений этой задачи
-                    List<TaskAssignment> assignments = taskAssignmentRepository.findByTaskId(task.getId());
-                    boolean allCompleted = true;
-                    for (TaskAssignment assignment : assignments) {
-                        if (!"COMPLETED".equals(assignment.getStatus())) {
-                            allCompleted = false;
-                            break;
-                        }
-                    }
-                    if (allCompleted && !assignments.isEmpty()) {
-                        completedTeacherTasks++;
+                for (Person student : teacherStudents) {
+                    // Задачи студента от этого препода
+                    List<TaskAssignment> studentAssignments = taskAssignmentRepository.findByUserId(student.getId());
+                    int studentTaskCount = studentAssignments.size();
+
+                    if (studentTaskCount > 0) {
+                        // Прогресс студента
+                        long completedCount = studentAssignments.stream()
+                                .filter(assignment -> "COMPLETED".equals(assignment.getStatus()))
+                                .count();
+                        double studentProgress = (double) completedCount / studentTaskCount * 100;
+                        totalStudentProgress += studentProgress;
+                        studentsWithTasksCount++;
+
+                        // Нагрузка
+                        totalStudentTasks += studentTaskCount;
+                        minTasks = Math.min(minTasks, studentTaskCount);
+                        maxTasks = Math.max(maxTasks, studentTaskCount);
                     }
                 }
 
-                stats.setTotalAssignedTasks(teacherTasksCount);
-                stats.setCompletedTasks(completedTeacherTasks);
-                stats.setActiveTasks(teacherTasksCount - completedTeacherTasks);
+                // Средний прогресс
+                if (studentsWithTasksCount > 0) {
+                    stats.setAvgStudentProgress(totalStudentProgress / studentsWithTasksCount);
+                } else {
+                    stats.setAvgStudentProgress(0.0);
+                }
+
+                // Нагрузка
+                if (studentsWithTasksCount > 0) {
+                    stats.setAvgTasksPerStudent((double) totalStudentTasks / studentsWithTasksCount);
+                    stats.setMinTasks(minTasks == Integer.MAX_VALUE ? 0 : minTasks);
+                    stats.setMaxTasks(maxTasks);
+                } else {
+                    stats.setAvgTasksPerStudent(0.0);
+                    stats.setMinTasks(0);
+                    stats.setMaxTasks(0);
+                }
+
+                // 3. ⏰ Просрочки
+                int totalOverdueTasks = 0;
+                for (Person student : teacherStudents) {
+                    List<TaskAssignment> studentAssignments = taskAssignmentRepository.findByUserId(student.getId());
+                    long studentOverdueCount = studentAssignments.stream()
+                            .filter(assignment -> {
+                                Task task = assignment.getTask();
+                                // Добавляем проверку на null для task и task.getAuthor()
+                                return task != null &&
+                                        task.getAuthor() != null &&
+                                        task.getAuthor().getId().equals(teacher.getId()) && // задача препода
+                                        task.getDeadline() != null &&
+                                        task.getDeadline().isBefore(LocalDateTime.now()) && // просрочена
+                                        !"COMPLETED".equals(assignment.getStatus()); // не выполнена
+                            })
+                            .count();
+                    totalOverdueTasks += (int) studentOverdueCount;
+                }
+                stats.setTotalOverdueTasks(totalOverdueTasks);
+
+                // 4. 🐢 Стагнация
+                LocalDateTime twoWeeksAgo = LocalDateTime.now().minusWeeks(2);
+                List<TaskAssignment> stuckAssignments = taskAssignmentRepository.findStuckByTeacherId(teacher.getId(), twoWeeksAgo);
+                stats.setStuckTasks(stuckAssignments.size());
+
+                // 5. 👨‍🏫 Задачи в группах препода
+                long tasksInTeacherGroups = teacherTasks.stream()
+                        .filter(task -> !taskAssignmentRepository.findByTaskId(task.getId()).isEmpty())
+                        .count();
+                stats.setTasksAssignedToMyGroups((int) tasksInTeacherGroups);
+                long totalSystemTasks = taskRepository.count();
+                stats.setTotalTasks((int) totalSystemTasks);
+
                 break;
 
             case "ROLE_STUDENT":
@@ -236,12 +307,13 @@ public class AdminService {
                     // Считаем активные и завершенные
                     if ("COMPLETED".equals(status)) {
                         completedStudentTasks++;
-                    } else {
+                    }
+                    else {
                         activeStudentTasks++;
 
                         // Ищем ближайший дедлайн для незавершенных задач
                         Task task = assignment.getTask();
-                        if (task != null && task.getDeadline() != null) {
+                        if (task != null && task.getDeadline() != null && !"OVERDUE".equals(status)) {
                             if (nextDeadline == null || task.getDeadline().isBefore(nextDeadline)) {
                                 nextDeadline = task.getDeadline();
                             }
@@ -249,7 +321,7 @@ public class AdminService {
                     }
                 }
 
-                stats.setActiveTasks(activeStudentTasks);
+                stats.setActiveTasks(activeStudentTasks - statusCount.getOrDefault("OVERDUE", 0));
                 stats.setCompletedTasks(completedStudentTasks);
                 stats.setStatusCount(statusCount);
                 stats.setNextDeadline(nextDeadline);

@@ -6,6 +6,7 @@ public class GroupResponseDTO {
     private Integer id;
     private String name;
     private String description;
+    private Integer teacherId;
     private LocalDateTime createdAt;
 
     public Integer getId() {
@@ -38,5 +39,13 @@ public class GroupResponseDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Integer getTeacherId() {
+        return teacherId;
+    }
+
+    public void setTeacherId(Integer teacherId) {
+        this.teacherId = teacherId;
     }
 }

@@ -2,14 +2,13 @@ package ru.danon.spring.ToDo.services;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.danon.spring.ToDo.dto.MyTaskDTO;
-import ru.danon.spring.ToDo.dto.TaskDTO;
-import ru.danon.spring.ToDo.dto.TaskResponseDTO;
-import ru.danon.spring.ToDo.dto.TaskStatDTO;
+import ru.danon.spring.ToDo.dto.*;
 import ru.danon.spring.ToDo.models.*;
 import ru.danon.spring.ToDo.models.id.TaskAssignmentId;
 import ru.danon.spring.ToDo.models.id.TaskTagId;
@@ -130,9 +129,20 @@ public class TaskService {
     @Transactional
     public void assignTaskForGroup(Integer taskID, Integer groupId, String currentUsername) {
         List<Person> groupMembers = groupService.getPersonsByGroupId(groupId);
-        for (Person groupMember : groupMembers) {
-            assignTask(taskID, groupMember.getId(), currentUsername);
+
+        // Находим пользователей, которым задача еще не назначена
+        List<Person> usersToAssign = groupMembers.stream()
+                .filter(user -> !taskAssignmentRepository.existsById(
+                        new TaskAssignmentId(taskID, user.getId())))
+                .toList();
+
+        // Назначаем задачу только тем, у кого ее еще нет
+        for (Person user : usersToAssign) {
+            assignTask(taskID, user.getId(), currentUsername);
         }
+
+        System.out.println("Assigned to " + usersToAssign.size() + " users, skipped " +
+                (groupMembers.size() - usersToAssign.size()) + " users (already assigned)");
     }
 
     //получить статус таски (функция для препода)
@@ -300,7 +310,7 @@ public class TaskService {
     //юзер делится таской с другим юзером
     @Transactional
     public void shareTask(Integer taskId, Integer userId, String currentUsername) {
-        //сделать проверку (1.У отправителя должна быть эта задача, иначе он не сможет ей делиться,
+        //1.У отправителя должна быть эта задача, иначе он не сможет ей делиться,
         //2.У получателя не должно быть назначенной этой таски, если она у него есть, вывести сообщение (Пользователь решает эту задачу)
 
         Person currentPerson = peopleService.findByUsername(currentUsername)
@@ -315,9 +325,8 @@ public class TaskService {
         if (taskAssignmentRepository.existsById(receiverId))
             throw new RuntimeException("User already has this task");
 
-        //уведомление: вам назначена новая задача
-        assignTask(taskId, userId, currentUsername);
 
+        assignTask(taskId, userId, currentUsername);
     }
 
     private TaskResponseDTO convertToResponseDTO(Task task){
@@ -396,5 +405,43 @@ public class TaskService {
         }
     }
 
+    public List<PersonResponseDTO> getUsersWithTask(Integer taskId, Authentication auth) {
+        Person user = peopleService.findByUsername(auth.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (groupService.isTeacher(user)) {
+            return groupService.findByTeacherId(auth)
+                    .stream()
+                    .filter(person -> {
+                        try {
+                            findMyTasksById(taskId, person.getUsername());
+                            return true;
+                        } catch (RuntimeException e) {
+                            return false;
+                        }
+                    }).map(
+                            this::convertToPersonDTO
+                    )
+                    .toList();
+        } else {
+            return groupService.getPersonsByGroupId(groupService.getUserGroup(auth.getName()))
+                    .stream()
+                    .filter(person -> !person.getId().equals(user.getId())) // убираем текущего пользователя
+                    .filter(person -> {
+                        try {
+                            findMyTasksById(taskId, person.getUsername());
+                            return true;
+                        } catch (RuntimeException e) {
+                            return false;
+                        }
+                    }).map(
+                            this::convertToPersonDTO
+                    )
+                    .toList();
+        }
+    }
+    private PersonResponseDTO convertToPersonDTO(Person user) {
+        return modelMapper.map(user, PersonResponseDTO.class);
+    }
 }
 

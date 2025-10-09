@@ -4,9 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
+import ru.danon.spring.ToDo.models.Person;
 import ru.danon.spring.ToDo.services.GroupService;
 import ru.danon.spring.ToDo.services.PeopleService;
 
@@ -34,5 +36,10 @@ public class UserController {
     public Map<String, Integer> getMyGroup(Authentication authentication) {
 
         return Map.of("id", groupService.getUserGroup(authentication.getName()));
+    }
+    @GetMapping("/about-user/{id}")
+    public Map<String, String> getAboutUser(@PathVariable Integer id) {
+        Person person = peopleService.findById(id).orElseThrow(() -> new RuntimeException("Person not found"));
+        return Map.of("teacherName", person.getUsername());
     }
 }

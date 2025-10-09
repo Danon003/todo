@@ -132,4 +132,30 @@ public class NotificationProducerService {
 
         sendNotification(event);
     }
+
+    public void sendTeacherRemovedNotification(Integer id, String groupName) {
+        NotificationEvent event = new NotificationEvent();
+
+        event.setId(UUID.randomUUID().toString());
+        event.setType("TEACHER_REMOVED");
+        event.setTitle("Вас сняли с должности преподавателя");
+        event.setMessage("Вы больше не отвечаете за " + groupName);
+        event.setUserId(id);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+
+        sendNotification(event);
+    }
+
+    public void sendTeacherAssignNotification(Integer id, String name) {
+        NotificationEvent event = new NotificationEvent();
+
+        event.setId(UUID.randomUUID().toString());
+        event.setType("TEACHER_ASSIGN");
+        event.setTitle("Назначен преподаватель");
+        event.setMessage("Вы ответственны за " + name);
+        event.setUserId(id);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+
+        sendNotification(event);
+    }
 }

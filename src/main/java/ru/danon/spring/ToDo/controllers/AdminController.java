@@ -94,8 +94,18 @@ public class AdminController {
     }
 
     @GetMapping("/statistic")
-    public ResponseEntity<StatisticDTO> getStatistic(Authentication auth ){
-        return ResponseEntity.ok(adminService.getStatistic(auth));
+    public ResponseEntity<DashboardStatsDTO> getStatistic(Authentication auth ){
+        return ResponseEntity.ok(adminService.getDashboardStats(auth));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{groupId}/teacher/{teacherId}")
+    public ResponseEntity<Void> assignTeacherToGroup(
+            @PathVariable Integer groupId,
+            @PathVariable Integer teacherId) {
+
+        adminService.assignTeacherToGroup(groupId, teacherId);
+        return ResponseEntity.noContent().build();
     }
 
     private Person convertToPerson(PersonDTO personDTO) {
