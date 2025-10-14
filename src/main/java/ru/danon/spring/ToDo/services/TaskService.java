@@ -199,14 +199,14 @@ public class TaskService {
         return assignments.stream().map(assignment -> {
             Task task = assignment.getTask();
             String status = assignment.getStatus();
-
+            Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
             return new MyTaskDTO(
                     task.getId(),
                     task.getTitle(),
                     task.getDescription(),
                     task.getDeadline(),
                     task.getPriority(),
-                    task.getAuthor().getId(),
+                    authorId,
                     status
             );
         }).collect(Collectors.toList());
@@ -221,14 +221,14 @@ public class TaskService {
         return assignments.stream().map(assignment -> {
             Task task = assignment.getTask();
             String status = assignment.getStatus();
-
+            Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
             return new MyTaskDTO(
                     task.getId(),
                     task.getTitle(),
                     task.getDescription(),
                     task.getDeadline(),
                     task.getPriority(),
-                    task.getAuthor().getId(),
+                    authorId,
                     status
             );
         }).collect(Collectors.toList());
@@ -249,14 +249,14 @@ public class TaskService {
         // Достаём саму задачу и её статус
         Task task = assignment.getTask();
         String status = assignment.getStatus();
-
+        Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
         return new MyTaskDTO(
                 task.getId(),
                 task.getTitle(),
                 task.getDescription(),
                 task.getDeadline(),
                 task.getPriority(),
-                task.getAuthor().getId(),
+                authorId,
                 status
         );
     }
@@ -271,13 +271,14 @@ public class TaskService {
 
         Task task = assignment.getTask();
         String status = assignment.getStatus();
+        Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
         return new MyTaskDTO(
                 task.getId(),
                 task.getTitle(),
                 task.getDescription(),
                 task.getDeadline(),
                 task.getPriority(),
-                task.getAuthor().getId(),
+                authorId,
                 status
         );
     }
@@ -296,13 +297,14 @@ public class TaskService {
 
 
         Task task = assignment.getTask();
+        Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
         return new MyTaskDTO(
                 task.getId(),
                 task.getTitle(),
                 task.getDescription(),
                 task.getDeadline(),
                 task.getPriority(),
-                task.getAuthor().getId(),
+                authorId,
                 status
         );
     }
@@ -384,6 +386,7 @@ public class TaskService {
         checkDeadlineWindow(now, "через 1 день", "TASK_DEADLINE_1D", 24);   // 24–22 часа
         checkDeadlineWindow(now, "через 12 часов", "TASK_DEADLINE_12H", 12); // 12–10 часов
     }
+
 
     private void checkDeadlineWindow(LocalDateTime now, String label, String eventType, int hoursBefore) {
         LocalDateTime windowStart = now.plusHours(hoursBefore - 1); // начало окна

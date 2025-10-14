@@ -7,10 +7,11 @@ import ru.danon.spring.ToDo.models.Person;
 
 import java.time.LocalDateTime;
 
+
 public class LogResponseDTO {
 
         private Integer id;
-        private Person user;
+        private PersonDTO user;
         private String oldRole;
         private String newRole;
         private LocalDateTime changedAt;
@@ -23,11 +24,11 @@ public class LogResponseDTO {
             this.id = id;
         }
 
-        public Person getUser() {
+        public PersonDTO getUser() {
             return user;
         }
 
-        public void setUser(Person user) {
+        public void setUser(PersonDTO user) {
             this.user = user;
         }
 

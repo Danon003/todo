@@ -89,7 +89,7 @@ public class AdminController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/role-audit-log")
-    public ResponseEntity<List<RoleAuditLog>> getRoleAuditLog() {
+    public ResponseEntity<List<LogResponseDTO>> getRoleAuditLog() {
         return ResponseEntity.ok(adminService.getRoleAuditLogs());
     }
 

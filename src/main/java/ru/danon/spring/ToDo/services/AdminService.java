@@ -1,11 +1,13 @@
 package ru.danon.spring.ToDo.services;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.DashboardStatsDTO;
+import ru.danon.spring.ToDo.dto.LogResponseDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.StatisticDTO;
 import ru.danon.spring.ToDo.models.*;
@@ -27,9 +29,10 @@ public class AdminService {
     private final TaskAssignmentRepository taskAssignmentRepository;
     private final UserGroupRepository userGroupRepository;
     private final GroupService groupService;
+    private final ModelMapper modelMapper;
 
     @Autowired
-    public AdminService(PeopleService peopleService, GroupRepository groupRepository, NotificationProducerService notificationProducerService, RoleAuditLogRepository roleAuditLogRepository, TaskRepository taskRepository, TaskService taskService, TaskAssignmentRepository taskAssignmentRepository, UserGroupRepository userGroupRepository, GroupService groupService) {
+    public AdminService(PeopleService peopleService, GroupRepository groupRepository, NotificationProducerService notificationProducerService, RoleAuditLogRepository roleAuditLogRepository, TaskRepository taskRepository, TaskService taskService, TaskAssignmentRepository taskAssignmentRepository, UserGroupRepository userGroupRepository, GroupService groupService, ModelMapper modelMapper) {
         this.peopleService = peopleService;
         this.groupRepository = groupRepository;
         this.notificationProducerService = notificationProducerService;
@@ -41,6 +44,7 @@ public class AdminService {
         this.taskAssignmentRepository = taskAssignmentRepository;
         this.userGroupRepository = userGroupRepository;
         this.groupService = groupService;
+        this.modelMapper = modelMapper;
     }
 
     public List<Person> getAllUsers() {
@@ -58,6 +62,7 @@ public class AdminService {
         groupRepository.save(group);
     }
 
+    @Transactional
     public void changeUserRole(Integer userId, String newRole) {
         Person user = peopleService.findById(userId).orElseThrow(
                 () -> new RuntimeException("User not found"));
@@ -68,11 +73,19 @@ public class AdminService {
         log.setNewRole(newRole);
         log.setChangedAt(LocalDateTime.now());
 
+        // Обработка для TEACHER
         if(user.getRole().equals("ROLE_TEACHER")){
             List<Group> groups = groupRepository.findByTeacherId(userId);
             for(Group group : groups) {
                 group.setTeacher(null);
                 groupRepository.save(group);
+            }
+        }
+
+        if(user.getRole().equals("ROLE_STUDENT")){
+            Integer groupId = groupService.getUserGroup(user.getUsername());
+            if (groupId != null) {
+                groupService.removeStudentFromGroup(groupId, userId);
             }
         }
 
@@ -140,9 +153,11 @@ public class AdminService {
         return peopleService.findByRole("ROLE_" + role);
     }
 
-    public List<RoleAuditLog> getRoleAuditLogs() {
-        return roleAuditLogRepository.findAll();
+    public List<LogResponseDTO> getRoleAuditLogs() {
+        return convertToLogResponse(roleAuditLogRepository.findAll());
     }
+
+
 
     public DashboardStatsDTO getDashboardStats(Authentication auth) {
         String username = auth.getName();
@@ -170,21 +185,6 @@ public class AdminService {
                     roleStats.put(userRole, roleStats.getOrDefault(userRole, 0) + 1);
                 }
                 stats.setRoleStatistics(roleStats);
-
-//                // Активные задачи (все назначения где статус не COMPLETED)
-//                int activeTasks = 0;
-//                List<Task> allTasks = taskService.findAllTasks();
-//                for (Task task : allTasks) {
-//                    // Для каждой задачи получаем все назначения
-//                    List<TaskAssignment> assignments = taskAssignmentRepository.findByTaskId(task.getId());
-//                    for (TaskAssignment assignment : assignments) {
-//                        if (!"COMPLETED".equals(assignment.getStatus())) {
-//                            activeTasks++;
-//                        }
-//                    }
-//                }
-//                stats.setActiveTasks(activeTasks);
-//                stats.setCompletedTasks(allTasks.size() - activeTasks);
                 break;
 
             case "ROLE_TEACHER":
@@ -329,6 +329,11 @@ public class AdminService {
         }
 
         return stats;
+    }
+    private List<LogResponseDTO> convertToLogResponse(List<RoleAuditLog> all) {
+        return all.stream()
+                .map(log -> modelMapper.map(log, LogResponseDTO.class))
+                .collect(Collectors.toList());
     }
 }
 

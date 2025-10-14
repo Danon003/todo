@@ -168,10 +168,21 @@ public class GroupService {
     }
 
     public Integer getUserGroup(String name) {
-        Person user = peopleService.findByUsername(name)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        UserGroup userGroup = userGroupRepository.findUserGroupByUser(user);
-        return userGroup.getGroup().getId();
+        try {
+            Person user = peopleService.findByUsername(name)
+                    .orElse(null); // возвращаем null вместо исключения
+
+            if (user == null) return null;
+
+            UserGroup userGroup = userGroupRepository.findUserGroupByUser(user);
+
+            return (userGroup != null && userGroup.getGroup() != null)
+                    ? userGroup.getGroup().getId()
+                    : null;
+
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     //метод возвращает юзеров препода (собирает назначенные группы преподу и возвращает их юзеров)
