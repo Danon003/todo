@@ -1,6 +1,7 @@
 package ru.danon.spring.ToDo.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 // MyTaskDTO.java
 public class MyTaskDTO {
@@ -10,12 +11,17 @@ public class MyTaskDTO {
     private LocalDateTime deadline;
     private String priority;
     private Integer authorId;
-    private String userStatus; // ← статус именно этого пользователя
+    private String userStatus;
+    private List<TagDTO> tags;
+    private List<Integer> tagIds;
+    private List<String> tagNames;
 
-    public MyTaskDTO() {}
+    public MyTaskDTO() {
+    }
+
     public MyTaskDTO(Integer id, String title, String description,
                      LocalDateTime deadline, String priority,
-                      Integer authorId, String userStatus) {
+                     Integer authorId, String userStatus, List<TagDTO> tags) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -23,6 +29,7 @@ public class MyTaskDTO {
         this.priority = priority;
         this.authorId = authorId;
         this.userStatus = userStatus;
+        this.tags = tags;
     }
 
     public Integer getId() {
@@ -80,5 +87,29 @@ public class MyTaskDTO {
 
     public void setAuthorId(Integer authorId) {
         this.authorId = authorId;
+    }
+
+    public List<TagDTO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<TagDTO> tags) {
+        this.tags = tags;
+    }
+
+    public List<Integer> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(List<Integer> tagIds) {
+        this.tagIds = tagIds;
+    }
+
+    public List<String> getTagNames() {
+        return tagNames;
+    }
+
+    public void setTagNames(List<String> tagNames) {
+        this.tagNames = tagNames;
     }
 }

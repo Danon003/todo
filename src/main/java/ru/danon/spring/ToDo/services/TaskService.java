@@ -2,7 +2,6 @@ package ru.danon.spring.ToDo.services;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
@@ -11,8 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.*;
 import ru.danon.spring.ToDo.models.*;
 import ru.danon.spring.ToDo.models.id.TaskAssignmentId;
-import ru.danon.spring.ToDo.models.id.TaskTagId;
-import ru.danon.spring.ToDo.repositories.TagRepository;
 import ru.danon.spring.ToDo.repositories.TaskAssignmentRepository;
 import ru.danon.spring.ToDo.repositories.TaskRepository;
 import ru.danon.spring.ToDo.repositories.TaskTagRepository;
@@ -32,10 +29,12 @@ public class TaskService {
     private final TaskAssignmentRepository taskAssignmentRepository;
     private final NotificationProducerService notificationProducerService;
     private final ModelMapper modelMapper;
+    private final MLClient mlClient;
+    private final TagService tagService;
 
 
     @Autowired
-    public TaskService(PeopleService peopleService, GroupService groupService, TaskRepository taskRepository, TaskTagRepository taskTagRepository, TaskAssignmentRepository taskAssignmentRepository, NotificationProducerService notificationProducerService, ModelMapper modelMapper) {
+    public TaskService(PeopleService peopleService, GroupService groupService, TaskRepository taskRepository, TaskTagRepository taskTagRepository, TaskAssignmentRepository taskAssignmentRepository, NotificationProducerService notificationProducerService, ModelMapper modelMapper, MLClient mlClient, TagService tagService) {
         this.peopleService = peopleService;
         this.groupService = groupService;
         this.taskRepository = taskRepository;
@@ -44,11 +43,12 @@ public class TaskService {
         this.notificationProducerService = notificationProducerService;
         this.modelMapper = modelMapper;
 
+        this.mlClient = mlClient;
+        this.tagService = tagService;
     }
 
     @Transactional
     public TaskResponseDTO createTask(MyTaskDTO taskDTO, String username) {
-
         Person author = peopleService.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Author not found"));
 
@@ -60,11 +60,34 @@ public class TaskService {
         task.setAuthor(author);
         task.setCreatedAt(LocalDateTime.now());
 
-        TaskAssignment taskAssignment = new TaskAssignment();
-        taskAssignment.setStatus("NOT_STARTED");
-
         Task savedTask = taskRepository.save(task);
+        taskRepository.flush();
 
+        // Добавляем теги
+        if (taskDTO.getTagIds() != null && !taskDTO.getTagIds().isEmpty()) {
+            System.out.println("Добавляем теги по ID: " + taskDTO.getTagIds());
+            for (Integer tagId : taskDTO.getTagIds()) {
+                try {
+                    tagService.addTagToTask(savedTask.getId(), tagId);
+                    System.out.println("Добавлен тег с ID: " + tagId + " к задаче " + savedTask.getId());
+                } catch (Exception e) {
+                    System.err.println("Ошибка при добавлении тега с ID " + tagId + ": " + e.getMessage());
+                }
+            }
+        }
+
+        // Добавляем новые теги по имени
+        if (taskDTO.getTagNames() != null && !taskDTO.getTagNames().isEmpty()) {
+            System.out.println("Добавляем теги по имени: " + taskDTO.getTagNames());
+            for (String tagName : taskDTO.getTagNames()) {
+                try {
+                    tagService.addTagToTaskByName(savedTask.getId(), tagName.trim());
+                    System.out.println("Добавлен тег с именем: " + tagName + " к задаче " + savedTask.getId());
+                } catch (Exception e) {
+                    System.err.println("Ошибка при добавлении тега с именем '" + tagName + "': " + e.getMessage());
+                }
+            }
+        }
         return convertToResponseDTO(savedTask);
     }
 
@@ -194,23 +217,31 @@ public class TaskService {
         Person user = peopleService.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
 
-        List<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user);
+        return taskAssignmentRepository.findByUser(user)
+                .stream()
+                .map(assignment -> {
+                    Task task = assignment.getTask();
 
-        return assignments.stream().map(assignment -> {
-            Task task = assignment.getTask();
-            String status = assignment.getStatus();
-            Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
-            return new MyTaskDTO(
-                    task.getId(),
-                    task.getTitle(),
-                    task.getDescription(),
-                    task.getDeadline(),
-                    task.getPriority(),
-                    authorId,
-                    status
-            );
-        }).collect(Collectors.toList());
+                    List<Tag> taskTags = tagService.getTaskTags(task.getId());
+                    List<TagDTO> tags = new ArrayList<>();
+                    for (Tag tag : taskTags) {
+                        tags.add(convertToTagDTO(tag));
+                    }
+
+                    return new MyTaskDTO(
+                            task.getId(),
+                            task.getTitle(),
+                            task.getDescription(),
+                            task.getDeadline(),
+                            task.getPriority(),
+                            task.getAuthor() != null ? task.getAuthor().getId() : null,
+                            assignment.getStatus(),
+                            tags
+                    );
+                })
+                .collect(Collectors.toList());
     }
+
 
     public List<MyTaskDTO> findUserTasks(Integer userId) {
         Person user = peopleService.findById(userId)
@@ -222,6 +253,13 @@ public class TaskService {
             Task task = assignment.getTask();
             String status = assignment.getStatus();
             Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
+
+            List<Tag> taskTags = tagService.getTaskTags(task.getId());
+            List<TagDTO> tags = new ArrayList<>();
+            for (Tag tag : taskTags) {
+                tags.add(convertToTagDTO(tag));
+            }
+
             return new MyTaskDTO(
                     task.getId(),
                     task.getTitle(),
@@ -229,7 +267,8 @@ public class TaskService {
                     task.getDeadline(),
                     task.getPriority(),
                     authorId,
-                    status
+                    status,
+                    tags
             );
         }).collect(Collectors.toList());
     }
@@ -250,6 +289,13 @@ public class TaskService {
         Task task = assignment.getTask();
         String status = assignment.getStatus();
         Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
+
+        List<Tag> taskTags = tagService.getTaskTags(taskId);
+        List<TagDTO> tags = new ArrayList<>();
+        for (Tag tag : taskTags) {
+            tags.add(convertToTagDTO(tag));
+        }
+
         return new MyTaskDTO(
                 task.getId(),
                 task.getTitle(),
@@ -257,13 +303,14 @@ public class TaskService {
                 task.getDeadline(),
                 task.getPriority(),
                 authorId,
-                status
+                status,
+                tags
         );
     }
 
 
     //юзер получает статус конкретной таски
-    public MyTaskDTO findStatusMyTask(Integer taskId, String currentUsername) {
+    public StatusDTO findStatusMyTask(Integer taskId, String currentUsername) {
         Integer myId = peopleService.findByUsername(currentUsername).get().getId();
         TaskAssignmentId id = new TaskAssignmentId(taskId, myId);
         TaskAssignment assignment = taskAssignmentRepository.findById(id)
@@ -271,16 +318,8 @@ public class TaskService {
 
         Task task = assignment.getTask();
         String status = assignment.getStatus();
-        Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
-        return new MyTaskDTO(
-                task.getId(),
-                task.getTitle(),
-                task.getDescription(),
-                task.getDeadline(),
-                task.getPriority(),
-                authorId,
-                status
-        );
+
+        return new StatusDTO(status);
     }
 
     //юзер меняет статус конкретной таски на переданный status
@@ -298,6 +337,11 @@ public class TaskService {
 
         Task task = assignment.getTask();
         Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
+
+        List<TagDTO> tags = tagService.getTaskTags(task.getId()).stream()
+                .map(this::convertToTagDTO)
+                .collect(Collectors.toList());
+
         return new MyTaskDTO(
                 task.getId(),
                 task.getTitle(),
@@ -305,7 +349,8 @@ public class TaskService {
                 task.getDeadline(),
                 task.getPriority(),
                 authorId,
-                status
+                status,
+                tags
         );
     }
 
@@ -331,9 +376,6 @@ public class TaskService {
         assignTask(taskId, userId, currentUsername);
     }
 
-    private TaskResponseDTO convertToResponseDTO(Task task){
-        return modelMapper.map(task, TaskResponseDTO.class);
-    }
 
     public Set<TaskResponseDTO> getGroupTasks(Integer groupId) {
         List<Person> groupMembers = groupService.getPersonsByGroupId(groupId);
@@ -408,6 +450,7 @@ public class TaskService {
         }
     }
 
+
     public List<PersonResponseDTO> getUsersWithTask(Integer taskId, Authentication auth) {
         Person user = peopleService.findByUsername(auth.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -415,14 +458,9 @@ public class TaskService {
         if (groupService.isTeacher(user)) {
             return groupService.findByTeacherId(auth)
                     .stream()
-                    .filter(person -> {
-                        try {
-                            findMyTasksById(taskId, person.getUsername());
-                            return true;
-                        } catch (RuntimeException e) {
-                            return false;
-                        }
-                    }).map(
+                    .filter(person -> taskAssignmentRepository.existsById(
+                            new TaskAssignmentId(taskId, person.getId())
+                    )).map(
                             this::convertToPersonDTO
                     )
                     .toList();
@@ -443,6 +481,17 @@ public class TaskService {
                     .toList();
         }
     }
+    private TaskResponseDTO convertToResponseDTO(Task task){
+
+        return modelMapper.map(task, TaskResponseDTO.class);
+    }
+
+    private TagDTO convertToTagDTO(Tag tag){
+        if (tag == null) return null;
+        TagDTO dto = new TagDTO();
+        dto.setId(tag.getId());
+        dto.setName(tag.getName());
+        return dto;    }
     private PersonResponseDTO convertToPersonDTO(Person user) {
         return modelMapper.map(user, PersonResponseDTO.class);
     }
