@@ -31,6 +31,8 @@ _Статус проекта:_
 - **Spring Data JPA**
 - **Docker, Docker Compose**
 - **Swagger**
+- **Spring Cloud**
+- **WebSocket**
 
 ## Запуск проекта
 
