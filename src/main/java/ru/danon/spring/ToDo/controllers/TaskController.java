@@ -14,6 +14,7 @@ import ru.danon.spring.ToDo.services.TaskService;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
@@ -146,6 +147,12 @@ public class TaskController {
         return ResponseEntity.ok(taskService.getUsersWithTask(taskId, authentication));
     }
 
+    @PreAuthorize("hasRole('TEACHER')")
+    @PutMapping("/{taskId}")
+    public ResponseEntity<TaskDTO> updateTask(@PathVariable Integer taskId, @RequestBody TaskDTO taskDTO, Authentication auth) {
+        return ResponseEntity.ok(convertToDTO(taskService.updateTask(taskId, taskDTO, auth.getName())));
+    }
+
 
 
     private TaskDTO convertToTaskDTO(Task task) {
@@ -179,6 +186,7 @@ public class TaskController {
         // Теги преобразуем вручную
         List<TagDTO> tagDTOs = tagService.getTaskTags(task.getId())
                 .stream()
+                .filter(Objects::nonNull)
                 .map(tag -> new TagDTO(tag.getId(), tag.getName()))
                 .collect(Collectors.toList());
         dto.setTags(tagDTOs);
@@ -190,5 +198,8 @@ public class TaskController {
     }
     private StatusDTO convertToStatusDTO(MyTaskDTO statusMyTask) {
         return modelMapper.map(statusMyTask, StatusDTO.class);
+    }
+    private Task convertToTask(TaskDTO taskDTO) {
+        return modelMapper.map(taskDTO, Task.class);
     }
 }
