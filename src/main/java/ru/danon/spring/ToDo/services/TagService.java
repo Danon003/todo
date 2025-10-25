@@ -6,11 +6,10 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.models.Tag;
 import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.models.TaskTag;
-import ru.danon.spring.ToDo.repositories.TagRepository;
-import ru.danon.spring.ToDo.repositories.TaskRepository;
-import ru.danon.spring.ToDo.repositories.TaskTagRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TagRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskTagRepository;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;

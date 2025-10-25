@@ -1,4 +1,4 @@
-package ru.danon.spring.ToDo.repositories;
+package ru.danon.spring.ToDo.repositories.jpa;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

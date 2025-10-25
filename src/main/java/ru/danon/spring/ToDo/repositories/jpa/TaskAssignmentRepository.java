@@ -1,4 +1,4 @@
-package ru.danon.spring.ToDo.repositories;
+package ru.danon.spring.ToDo.repositories.jpa;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -53,7 +53,7 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
     List<TaskAssignment> findByTaskId(Integer taskId);
     List<TaskAssignment> findByUserId(Integer userId);
 
-    @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE t.author.id = :teacherId AND ta.status = 'IN_PROGRESS' AND ta.updated_At < :twoWeeksAgo")
+    @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE ta.assignedBy.id = :teacherId AND ta.status != 'COMPLETED' AND ta.status != 'OVERDUE' AND ta.updated_At < :twoWeeksAgo")
     List<TaskAssignment> findStuckByTeacherId(@Param("teacherId") Integer teacherId, @Param("twoWeeksAgo") LocalDateTime twoWeeksAgo);
 
 }

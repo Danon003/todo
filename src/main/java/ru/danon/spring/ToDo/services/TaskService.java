@@ -11,9 +11,9 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.danon.spring.ToDo.dto.*;
 import ru.danon.spring.ToDo.models.*;
 import ru.danon.spring.ToDo.models.id.TaskAssignmentId;
-import ru.danon.spring.ToDo.repositories.TaskAssignmentRepository;
-import ru.danon.spring.ToDo.repositories.TaskRepository;
-import ru.danon.spring.ToDo.repositories.TaskTagRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskAssignmentRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskTagRepository;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -141,6 +141,7 @@ public class TaskService {
         taskAssignment.setUser(user);
         taskAssignment.setAssignedBy(assignedBy);
         taskAssignment.setAssignedAt(LocalDateTime.now());
+        taskAssignment.setUpdated_At(LocalDateTime.now());
 
         taskAssignmentRepository.save(taskAssignment);
 
@@ -336,7 +337,8 @@ public class TaskService {
         TaskAssignment assignment = taskAssignmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found or not assigned to you"));
 
-        assignment.setStatus(status);  // ← Меняем статус у назначения
+        assignment.setStatus(status);
+        assignment.setUpdated_At(LocalDateTime.now());
         taskAssignmentRepository.save(assignment);
 
 
@@ -535,22 +537,12 @@ public class TaskService {
 
 
 
-//oldTask = task, newTask = taskDTO
 private void updateTaskTags(Task oldTask, TaskDTO newTask) {
-    System.out.println("=== НАЧАЛО ОБНОВЛЕНИЯ ТЕГОВ ===");
-    System.out.println("Task ID: " + oldTask.getId()); // Используем ID старой задачи
-    System.out.println("Полученные tagIds: " + newTask.getTagIds());
-    System.out.println("Полученные tagNames: " + newTask.getTagNames());
-
     // Получаем текущие теги задачи - используем ID старой задачи
     List<Tag> currentTags = tagService.getTaskTags(oldTask.getId()); // ← ИСПРАВЛЕНО
     Set<Integer> currentTagIds = currentTags.stream()
             .map(Tag::getId)
             .collect(Collectors.toSet());
-
-    System.out.println("Текущие теги: " + currentTags.stream()
-            .map(tag -> tag.getId() + ":" + tag.getName())
-            .toList());
 
     // Обрабатываем теги по ID
     if (newTask.getTagIds() != null && !newTask.getTagIds().isEmpty()) {
@@ -580,32 +572,18 @@ private void updateTaskTags(Task oldTask, TaskDTO newTask) {
                 }
             }
         }
-    } else {
-        System.out.println("Нет тегов по ID для добавления");
     }
 
     // Добавляем новые теги по имени - используем ID старой задачи
     if (newTask.getTagNames() != null && !newTask.getTagNames().isEmpty()) {
-        System.out.println("Обрабатываем теги по имени...");
         for (String tagName : newTask.getTagNames()) {
             try {
-                System.out.println("Добавляем тег по имени: " + tagName);
-                tagService.addTagToTaskByName(oldTask.getId(), tagName.trim()); // ← ИСПРАВЛЕНО
+                tagService.addTagToTaskByName(oldTask.getId(), tagName.trim());
             } catch (Exception e) {
                 System.err.println("Ошибка при добавлении тега '" + tagName + "': " + e.getMessage());
             }
         }
-    } else {
-        System.out.println("Нет тегов по имени для добавления");
     }
-
-    // Логируем результат - используем ID старой задачи
-    List<Tag> updatedTags = tagService.getTaskTags(oldTask.getId()); // ← ИСПРАВЛЕНО
-    System.out.println("Теги после обновления: " + updatedTags.stream()
-            .filter(Objects::nonNull)
-            .map(tag -> tag.getId() + ":" + tag.getName())
-            .toList());
-    System.out.println("=== КОНЕЦ ОБНОВЛЕНИЯ ТЕГОВ ===");
 }
 
     private TaskDTO convertToTaskDTO(Task task) {
@@ -726,6 +704,12 @@ private void updateTaskTags(Task oldTask, TaskDTO newTask) {
         if (!task.getAuthor().getId().equals(teacher.getId())) {
             throw new RuntimeException("Можно оценивать только свои задачи");
         }
+
+        if(grade > 100)
+            throw new RuntimeException("Grade must be less than 100");
+        else if(grade < 0)
+            throw new RuntimeException("Grade must be greater than 0");
+
 
         TaskAssignment assignment = taskAssignmentRepository
                 .findById(new TaskAssignmentId(taskId, studentId))

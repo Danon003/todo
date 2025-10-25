@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.models.Person;
-import ru.danon.spring.ToDo.repositories.PeopleRepository;
+import ru.danon.spring.ToDo.repositories.jpa.PeopleRepository;
 
 import java.util.List;
 import java.util.Optional;

@@ -3,15 +3,13 @@ package ru.danon.spring.ToDo.services;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.DashboardStatsDTO;
 import ru.danon.spring.ToDo.dto.LogResponseDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
-import ru.danon.spring.ToDo.dto.StatisticDTO;
 import ru.danon.spring.ToDo.models.*;
-import ru.danon.spring.ToDo.repositories.*;
+import ru.danon.spring.ToDo.repositories.jpa.*;
 
 import java.time.LocalDateTime;
 import java.util.*;

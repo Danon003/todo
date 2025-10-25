@@ -202,4 +202,21 @@ public class NotificationProducerService {
 
         sendNotification(event);
     }
+
+    public void sendCommentNotification(Integer studentUserId, String username,
+                                        String taskTitle, Integer taskId) {
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("New_Comment");
+        event.setTitle("Новый комментарий");
+        event.setMessage("Пользователь " + username + " оставил комментарий к задаче: " + taskTitle);
+        event.setUserId(studentUserId);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "taskId", taskId,
+                "taskTitle", taskTitle
+        ));
+
+        sendNotification(event);
+    }
 }

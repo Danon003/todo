@@ -11,8 +11,8 @@ import ru.danon.spring.ToDo.models.Group;
 import ru.danon.spring.ToDo.models.Person;
 import ru.danon.spring.ToDo.models.UserGroup;
 import ru.danon.spring.ToDo.models.id.UserGroupId;
-import ru.danon.spring.ToDo.repositories.GroupRepository;
-import ru.danon.spring.ToDo.repositories.UserGroupRepository;
+import ru.danon.spring.ToDo.repositories.jpa.GroupRepository;
+import ru.danon.spring.ToDo.repositories.jpa.UserGroupRepository;
 import ru.danon.spring.ToDo.security.PersonDetails;
 
 import java.time.LocalDateTime;

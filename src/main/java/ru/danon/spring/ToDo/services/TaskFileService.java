@@ -5,12 +5,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import ru.danon.spring.ToDo.dto.TaskFileDTO;
 import ru.danon.spring.ToDo.models.Person;
-import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.models.TaskFile;
-import ru.danon.spring.ToDo.repositories.TaskFileRepository;
-import ru.danon.spring.ToDo.repositories.TaskRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskFileRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;

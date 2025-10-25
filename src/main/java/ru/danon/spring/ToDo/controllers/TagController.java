@@ -1,13 +1,11 @@
 package ru.danon.spring.ToDo.controllers;
 
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import ru.danon.spring.ToDo.dto.TagDTO;
 import ru.danon.spring.ToDo.models.Tag;
-import ru.danon.spring.ToDo.repositories.TagRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TagRepository;
 import ru.danon.spring.ToDo.services.TagService;
 
 import java.util.List;
