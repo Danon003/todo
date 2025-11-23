@@ -238,7 +238,12 @@ public class GroupService {
         return userGroupRepository.existsByGroupIdAndUserId(group.getId(), person.getId());
     }
 
-    public Integer getUserCountInGroup(Integer groupId) {
-        return userGroupRepository.countByGroupId(groupId);
+
+
+    public GroupResponseDTO getGroupInfo(Authentication authentication) {
+        GroupResponseDTO groupResponseDTO = new GroupResponseDTO();
+        groupResponseDTO.setId(getUserGroup(authentication.getName()));
+        groupResponseDTO.setName(userGroupRepository.getGroupName(groupResponseDTO.getId()));
+        return groupResponseDTO;
     }
 }

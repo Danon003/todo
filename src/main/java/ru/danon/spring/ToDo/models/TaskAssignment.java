@@ -41,7 +41,7 @@ public class TaskAssignment {
     @Column(name = "assigned_at", updatable = false)
     private LocalDateTime assignedAt;
 
-    @Column(name = "updated_at", updatable = false)
+    @Column(name = "updated_at")
     private LocalDateTime updated_At;
 
     @Column(name = "solution_file_name")

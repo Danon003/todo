@@ -46,6 +46,11 @@ public class AuthController {
     public Map<String, String> performRegistration(@RequestBody @Valid PersonDTO personDTO,
                                                    BindingResult bindingResult) {
 
+        // Проверяем, что пароль указан при регистрации
+        if (personDTO.getPassword() == null || personDTO.getPassword().trim().isEmpty()) {
+            return Map.of("message", "Пароль обязателен для регистрации!");
+        }
+
         Person person = convertToPerson(personDTO);
 
         personValidator.validate(person, bindingResult);

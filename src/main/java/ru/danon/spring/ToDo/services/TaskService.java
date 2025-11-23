@@ -30,14 +30,14 @@ public class TaskService {
     private final TaskAssignmentRepository taskAssignmentRepository;
     private final NotificationProducerService notificationProducerService;
     private final ModelMapper modelMapper;
-    private final MLClient mlClient;
     private final TagService tagService;
     private final TaskFileService taskFileService;
     private final FileStorageService fileStorageService;
+    private final NotificationSchedulingService notificationSchedulingService;
 
 
     @Autowired
-    public TaskService(PeopleService peopleService, GroupService groupService, TaskRepository taskRepository, TaskTagRepository taskTagRepository, TaskAssignmentRepository taskAssignmentRepository, NotificationProducerService notificationProducerService, ModelMapper modelMapper, MLClient mlClient, TagService tagService, TaskFileService taskFileService, FileStorageService fileStorageService) {
+    public TaskService(PeopleService peopleService, GroupService groupService, TaskRepository taskRepository, TaskTagRepository taskTagRepository, TaskAssignmentRepository taskAssignmentRepository, NotificationProducerService notificationProducerService, ModelMapper modelMapper, MLClient mlClient, TagService tagService, TaskFileService taskFileService, FileStorageService fileStorageService, NotificationSchedulingService notificationSchedulingService) {
         this.peopleService = peopleService;
         this.groupService = groupService;
         this.taskRepository = taskRepository;
@@ -45,8 +45,7 @@ public class TaskService {
         this.taskAssignmentRepository = taskAssignmentRepository;
         this.notificationProducerService = notificationProducerService;
         this.modelMapper = modelMapper;
-
-        this.mlClient = mlClient;
+        this.notificationSchedulingService = notificationSchedulingService;
         this.tagService = tagService;
         this.taskFileService = taskFileService;
         this.fileStorageService = fileStorageService;
@@ -99,6 +98,8 @@ public class TaskService {
     //удалить таску
     @Transactional
     public void deleteTask(Integer taskId) {
+        notificationSchedulingService.cancelAllTaskNotifications(taskId);
+
         taskAssignmentRepository.deleteByTaskId(taskId);
         taskTagRepository.deleteByTaskId(taskId);
         taskRepository.deleteById(taskId);
@@ -143,6 +144,7 @@ public class TaskService {
         taskAssignment.setAssignedAt(LocalDateTime.now());
         taskAssignment.setUpdated_At(LocalDateTime.now());
 
+        notificationSchedulingService.scheduleTaskNotifications(taskAssignment);
         taskAssignmentRepository.save(taskAssignment);
 
         //уведомление: вам назначена новая задача
@@ -322,8 +324,7 @@ public class TaskService {
         TaskAssignment assignment = taskAssignmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found or not assigned to you"));
 
-        Task task = assignment.getTask();
-        String status = assignment.getStatus();
+       String status = assignment.getStatus();
 
         return new StatusDTO(status);
     }
@@ -337,10 +338,14 @@ public class TaskService {
         TaskAssignment assignment = taskAssignmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found or not assigned to you"));
 
+        String oldStatus = assignment.getStatus();
         assignment.setStatus(status);
         assignment.setUpdated_At(LocalDateTime.now());
         taskAssignmentRepository.save(assignment);
 
+        if ("COMPLETED".equals(status) && !"COMPLETED".equals(oldStatus)) {
+            notificationSchedulingService.cancelTaskNotifications(taskId, myId);
+        }
 
         Task task = assignment.getTask();
         Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
@@ -424,39 +429,13 @@ public class TaskService {
                     assignment.getTask().getTitle(),
                     assignment.getTask().getId()
             );
-        }
-    }
 
-    @Scheduled(fixedRate = 3600000)
-    public void checkApproachingDeadlines() {
-        LocalDateTime now = LocalDateTime.now();
-
-        checkDeadlineWindow(now, "через 2 дня", "TASK_DEADLINE_2D", 48);   // 48–46 часов
-        checkDeadlineWindow(now, "через 1 день", "TASK_DEADLINE_1D", 24);   // 24–22 часа
-        checkDeadlineWindow(now, "через 12 часов", "TASK_DEADLINE_12H", 12); // 12–10 часов
-    }
-
-
-    private void checkDeadlineWindow(LocalDateTime now, String label, String eventType, int hoursBefore) {
-        LocalDateTime windowStart = now.plusHours(hoursBefore - 1); // начало окна
-        LocalDateTime windowEnd = now.plusHours(hoursBefore);       // конец окна
-
-        List<TaskAssignment> assignments = taskAssignmentRepository.findTasksWithDeadlineInWindow(
-                windowStart, windowEnd
-        );
-
-        for (TaskAssignment assignment : assignments) {
-            notificationProducerService.sendTaskDeadlineApproachingNotification(
-                    assignment.getUserId(),
-                    "ROLE_STUDENT",
-                    assignment.getTask().getTitle(),
+            notificationSchedulingService.cancelTaskNotifications(
                     assignment.getTask().getId(),
-                    label,
-                    eventType
+                    assignment.getUserId()
             );
         }
     }
-
 
     public List<PersonResponseDTO> getUsersWithTask(Integer taskId, Authentication auth) {
         Person user = peopleService.findByUsername(auth.getName())
@@ -530,6 +509,15 @@ public class TaskService {
 
         if (!oldDeadline.equals(task.getDeadline())) {
             updateTaskAssignmentsStatus(updatedTask);
+
+            // Перепланируем уведомления для всех назначений
+            List<TaskAssignment> assignments = taskAssignmentRepository.findByTask(updatedTask);
+            for (TaskAssignment assignment : assignments) {
+                // Отменяем только если задача не завершена и не просрочена
+                if (!"COMPLETED".equals(assignment.getStatus()) && !"OVERDUE".equals(assignment.getStatus())) {
+                    notificationSchedulingService.rescheduleTaskNotifications(assignment);
+                }
+            }
         }
 
         return updatedTask;
@@ -537,54 +525,54 @@ public class TaskService {
 
 
 
-private void updateTaskTags(Task oldTask, TaskDTO newTask) {
-    // Получаем текущие теги задачи - используем ID старой задачи
-    List<Tag> currentTags = tagService.getTaskTags(oldTask.getId()); // ← ИСПРАВЛЕНО
-    Set<Integer> currentTagIds = currentTags.stream()
-            .map(Tag::getId)
-            .collect(Collectors.toSet());
+    private void updateTaskTags(Task oldTask, TaskDTO newTask) {
+        // Получаем текущие теги задачи - используем ID старой задачи
+        List<Tag> currentTags = tagService.getTaskTags(oldTask.getId()); // ← ИСПРАВЛЕНО
+        Set<Integer> currentTagIds = currentTags.stream()
+                .map(Tag::getId)
+                .collect(Collectors.toSet());
 
-    // Обрабатываем теги по ID
-    if (newTask.getTagIds() != null && !newTask.getTagIds().isEmpty()) {
-        System.out.println("Обрабатываем теги по ID...");
-        Set<Integer> newTagIds = new HashSet<>(newTask.getTagIds());
+        // Обрабатываем теги по ID
+        if (newTask.getTagIds() != null && !newTask.getTagIds().isEmpty()) {
+            System.out.println("Обрабатываем теги по ID...");
+            Set<Integer> newTagIds = new HashSet<>(newTask.getTagIds());
 
-        // Удаляем теги, которых нет в новом списке - используем ID старой задачи
-        for (Tag currentTag : currentTags) {
-            if (!newTagIds.contains(currentTag.getId())) {
-                try {
-                    System.out.println("Удаляем тег: " + currentTag.getId() + " - " + currentTag.getName());
-                    tagService.removeTagFromTask(oldTask.getId(), currentTag.getId()); // ← ИСПРАВЛЕНО
-                } catch (Exception e) {
-                    System.err.println("Ошибка при удалении тега " + currentTag.getId() + ": " + e.getMessage());
+            // Удаляем теги, которых нет в новом списке - используем ID старой задачи
+            for (Tag currentTag : currentTags) {
+                if (!newTagIds.contains(currentTag.getId())) {
+                    try {
+                        System.out.println("Удаляем тег: " + currentTag.getId() + " - " + currentTag.getName());
+                        tagService.removeTagFromTask(oldTask.getId(), currentTag.getId()); // ← ИСПРАВЛЕНО
+                    } catch (Exception e) {
+                        System.err.println("Ошибка при удалении тега " + currentTag.getId() + ": " + e.getMessage());
+                    }
+                }
+            }
+
+            // Добавляем новые теги - используем ID старой задачи
+            for (Integer tagId : newTask.getTagIds()) {
+                if (!currentTagIds.contains(tagId)) {
+                    try {
+                        System.out.println("Добавляем тег по ID: " + tagId);
+                        tagService.addTagToTask(oldTask.getId(), tagId); // ← ИСПРАВЛЕНО
+                    } catch (Exception e) {
+                        System.err.println("Ошибка при добавлении тега " + tagId + ": " + e.getMessage());
+                    }
                 }
             }
         }
 
-        // Добавляем новые теги - используем ID старой задачи
-        for (Integer tagId : newTask.getTagIds()) {
-            if (!currentTagIds.contains(tagId)) {
+        // Добавляем новые теги по имени - используем ID старой задачи
+        if (newTask.getTagNames() != null && !newTask.getTagNames().isEmpty()) {
+            for (String tagName : newTask.getTagNames()) {
                 try {
-                    System.out.println("Добавляем тег по ID: " + tagId);
-                    tagService.addTagToTask(oldTask.getId(), tagId); // ← ИСПРАВЛЕНО
+                    tagService.addTagToTaskByName(oldTask.getId(), tagName.trim());
                 } catch (Exception e) {
-                    System.err.println("Ошибка при добавлении тега " + tagId + ": " + e.getMessage());
+                    System.err.println("Ошибка при добавлении тега '" + tagName + "': " + e.getMessage());
                 }
             }
         }
     }
-
-    // Добавляем новые теги по имени - используем ID старой задачи
-    if (newTask.getTagNames() != null && !newTask.getTagNames().isEmpty()) {
-        for (String tagName : newTask.getTagNames()) {
-            try {
-                tagService.addTagToTaskByName(oldTask.getId(), tagName.trim());
-            } catch (Exception e) {
-                System.err.println("Ошибка при добавлении тега '" + tagName + "': " + e.getMessage());
-            }
-        }
-    }
-}
 
     private TaskDTO convertToTaskDTO(Task task) {
         TaskDTO dto = new TaskDTO();
@@ -674,6 +662,8 @@ private void updateTaskTags(Task oldTask, TaskDTO newTask) {
         assignment.setStatus("COMPLETED");
 
         taskAssignmentRepository.save(assignment);
+
+        notificationSchedulingService.cancelTaskNotifications(taskId, student.getId());
 
         try {
             Person teacher = assignment.getTask().getAuthor();
@@ -832,17 +822,6 @@ private void updateTaskTags(Task oldTask, TaskDTO newTask) {
     }
 
     public List<SolutionDTO> getAllSolutionsForTask(Integer taskId, String teacherUsername) {
-        // Проверка прав преподавателя
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-
-        Person teacher = peopleService.findByUsername(teacherUsername)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (!task.getAuthor().getId().equals(teacher.getId())) {
-            throw new RuntimeException("Access denied");
-        }
-
         // Получаем все назначения для этой задачи
         List<TaskAssignment> assignments = taskAssignmentRepository.findByTaskId(taskId);
 

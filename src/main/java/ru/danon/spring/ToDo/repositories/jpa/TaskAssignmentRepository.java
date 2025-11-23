@@ -48,7 +48,8 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
             "AND ta.status IN ('NOT_STARTED', 'IN_PROGRESS')")
     List<TaskAssignment> findTasksWithDeadlineInWindow(
             @Param("windowStart") LocalDateTime windowStart,
-            @Param("windowEnd") LocalDateTime windowEnd
+            @Param("windowEnd") LocalDateTime windowEnd,
+            @Param("now") LocalDateTime now
     );
     List<TaskAssignment> findByTaskId(Integer taskId);
     List<TaskAssignment> findByUserId(Integer userId);
@@ -56,4 +57,12 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
     @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE ta.assignedBy.id = :teacherId AND ta.status != 'COMPLETED' AND ta.status != 'OVERDUE' AND ta.updated_At < :twoWeeksAgo")
     List<TaskAssignment> findStuckByTeacherId(@Param("teacherId") Integer teacherId, @Param("twoWeeksAgo") LocalDateTime twoWeeksAgo);
 
-}
+    @Query("SELECT COUNT(ta) > 0 FROM TaskAssignment ta " +
+            "JOIN ta.task t " +
+            "WHERE t.id = :taskId " +
+            "AND ta.userId = :userId " +
+            "AND ta.status NOT IN ('COMPLETED', 'OVERDUE') " +
+            "AND t.deadline > :now")
+    boolean existsValidTaskForNotification(@Param("taskId") Integer taskId,
+                                           @Param("userId") Integer userId,
+                                           @Param("now") LocalDateTime now);}

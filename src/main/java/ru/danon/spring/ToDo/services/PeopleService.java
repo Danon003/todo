@@ -57,6 +57,40 @@ public class PeopleService {
         return convertToPersonResponseDTO(peopleRepository.findByUsername(name));
     }
 
+    @Transactional
+    public PersonResponseDTO updateUserProfile(String username, String newUsername, String newEmail, String newPassword) {
+        Person person = peopleRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        // Проверяем, не занят ли новый email другим пользователем
+        if (!person.getEmail().equals(newEmail)) {
+            Optional<Person> existingPerson = peopleRepository.findByEmail(newEmail);
+            if (existingPerson.isPresent() && !existingPerson.get().getId().equals(person.getId())) {
+                throw new RuntimeException("Email уже используется другим пользователем");
+            }
+        }
+
+        // Проверяем, не занят ли новый username другим пользователем
+        if (!person.getUsername().equals(newUsername)) {
+            Optional<Person> existingPerson = peopleRepository.findByUsername(newUsername);
+            if (existingPerson.isPresent() && !existingPerson.get().getId().equals(person.getId())) {
+                throw new RuntimeException("Имя пользователя уже занято");
+            }
+        }
+
+        // Обновляем данные
+        person.setUsername(newUsername);
+        person.setEmail(newEmail);
+
+        // Обновляем пароль только если он указан и не пустой
+        if (newPassword != null && !newPassword.trim().isEmpty()) {
+            person.setPassword(newPassword);
+        }
+
+        Person updatedPerson = peopleRepository.save(person);
+        return convertToPersonResponseDTO(Optional.of(updatedPerson));
+    }
+
     private PersonResponseDTO convertToPersonResponseDTO(Optional<Person> byUsername) {
         return modelMapper.map(byUsername.orElse(null), PersonResponseDTO.class);
     }
