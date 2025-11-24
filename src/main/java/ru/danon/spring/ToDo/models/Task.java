@@ -16,7 +16,7 @@ public class Task {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
     @NotNull(message = "Заголовок не должен быть пустым")
     @Size(min = 1, max = 255, message = "Заголовок должен быть от 2 до 255 символов")
@@ -51,11 +51,11 @@ public class Task {
 
     public Task() {}
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 

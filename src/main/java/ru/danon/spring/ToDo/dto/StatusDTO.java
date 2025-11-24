@@ -3,6 +3,13 @@ package ru.danon.spring.ToDo.dto;
 public class StatusDTO {
     String userStatus;
 
+    public StatusDTO() {
+    }
+
+    public StatusDTO(String userStatus) {
+        this.userStatus = userStatus;
+    }
+
     public String getStatus() {
         return userStatus;
     }

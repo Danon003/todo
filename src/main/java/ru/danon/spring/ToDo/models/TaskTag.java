@@ -1,10 +1,9 @@
 package ru.danon.spring.ToDo.models;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+import ru.danon.spring.ToDo.models.Tag;
+import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.models.id.TaskTagId;
-
 
 @Entity
 @Table(name = "task_tags")
@@ -12,26 +11,28 @@ import ru.danon.spring.ToDo.models.id.TaskTagId;
 public class TaskTag {
 
     @Id
-    @Column(name = "task_id", nullable = false, insertable = false, updatable = false)
+    @Column(name = "task_id", nullable = false)
     private Integer taskId;
 
     @Id
-    @Column(name = "tag_id", nullable = false, insertable = false, updatable = false)
+    @Column(name = "tag_id", nullable = false)
     private Integer tagId;
 
-
-    @ManyToOne
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "task_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "task_id", insertable = false, updatable = false)
     private Task task;
 
-
-    @ManyToOne
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "tag_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tag_id", insertable = false, updatable = false)
     private Tag tag;
 
     public TaskTag() {}
+
+    // Конструктор для удобства
+    public TaskTag(Integer taskId, Integer tagId) {
+        this.taskId = taskId;
+        this.tagId = tagId;
+    }
 
     public Task getTask() {
         return task;

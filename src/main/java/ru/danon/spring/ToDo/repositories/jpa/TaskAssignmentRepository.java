@@ -1,4 +1,4 @@
-package ru.danon.spring.ToDo.repositories;
+package ru.danon.spring.ToDo.repositories.jpa;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -18,7 +18,6 @@ import java.util.Optional;
 public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, TaskAssignmentId> {
     List<TaskAssignment> findByTask(Task task);
     List<TaskAssignment> findByUser(Person user);
-    void deleteByTask(Task task);
 
     @Query("SELECT ta FROM TaskAssignment ta WHERE ta.user.id = :userId AND ta.task.id = :taskId")
     Optional<TaskAssignment> findByUserIdAndTaskId(@Param("userId") Integer userId,
@@ -39,8 +38,6 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
             "AND ta.status IN ('NOT_STARTED', 'IN_PROGRESS')")
     void updateOverdueTaskAssignments(@Param("now") LocalDateTime now);
 
-    String getTaskStatusByUserIdAndTaskId(Integer userId, Integer taskId);
-
     @Query("SELECT ta FROM TaskAssignment ta " +
             "WHERE ta.task.deadline < :now " +
             "AND ta.status IN ('NOT_STARTED', 'IN_PROGRESS')")
@@ -51,19 +48,21 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
             "AND ta.status IN ('NOT_STARTED', 'IN_PROGRESS')")
     List<TaskAssignment> findTasksWithDeadlineInWindow(
             @Param("windowStart") LocalDateTime windowStart,
-            @Param("windowEnd") LocalDateTime windowEnd
+            @Param("windowEnd") LocalDateTime windowEnd,
+            @Param("now") LocalDateTime now
     );
     List<TaskAssignment> findByTaskId(Integer taskId);
     List<TaskAssignment> findByUserId(Integer userId);
-    Integer countByTaskId(Integer taskId);
 
-    @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE ta.user.id = :studentId AND t.author.id = :teacherId")
-    List<TaskAssignment> findByUserIdAndTeacherId(@Param("studentId") Integer studentId, @Param("teacherId") Integer teacherId);
-
-    @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE t.author.id = :teacherId AND t.deadline < CURRENT_TIMESTAMP AND ta.status != 'COMPLETED'")
-    List<TaskAssignment> findOverdueByTeacherId(@Param("teacherId") Integer teacherId);
-
-    @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE t.author.id = :teacherId AND ta.status = 'IN_PROGRESS' AND ta.updated_At < :twoWeeksAgo")
+    @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE ta.assignedBy.id = :teacherId AND ta.status != 'COMPLETED' AND ta.status != 'OVERDUE' AND ta.updated_At < :twoWeeksAgo")
     List<TaskAssignment> findStuckByTeacherId(@Param("teacherId") Integer teacherId, @Param("twoWeeksAgo") LocalDateTime twoWeeksAgo);
 
-}
+    @Query("SELECT COUNT(ta) > 0 FROM TaskAssignment ta " +
+            "JOIN ta.task t " +
+            "WHERE t.id = :taskId " +
+            "AND ta.userId = :userId " +
+            "AND ta.status NOT IN ('COMPLETED', 'OVERDUE') " +
+            "AND t.deadline > :now")
+    boolean existsValidTaskForNotification(@Param("taskId") Integer taskId,
+                                           @Param("userId") Integer userId,
+                                           @Param("now") LocalDateTime now);}

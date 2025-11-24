@@ -9,8 +9,8 @@ public class TaskDTO {
     private String description;
     private LocalDateTime deadline;
     private String priority;
-    //private String userStatus;
     private Integer authorId;
+    private List<TagDTO> tags;
     private List<Integer> tagIds;
     private List<String> tagNames;
 
@@ -78,12 +78,12 @@ public class TaskDTO {
     public void setTagNames(List<String> tagNames) {
         this.tagNames = tagNames;
     }
-//
-//    public String getUserStatus() {
-//        return userStatus;
-//    }
-//
-//    public void setUserStatus(String userStatus) {
-//        this.userStatus = userStatus;
-//    }
+
+    public List<TagDTO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<TagDTO> tags) {
+        this.tags = tags;
+    }
 }

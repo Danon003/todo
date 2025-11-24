@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.models.Person;
-import ru.danon.spring.ToDo.repositories.PeopleRepository;
+import ru.danon.spring.ToDo.repositories.jpa.PeopleRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -55,6 +55,40 @@ public class PeopleService {
 
     public PersonResponseDTO getUserInfo(String name) {
         return convertToPersonResponseDTO(peopleRepository.findByUsername(name));
+    }
+
+    @Transactional
+    public PersonResponseDTO updateUserProfile(String username, String newUsername, String newEmail, String newPassword) {
+        Person person = peopleRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        // Проверяем, не занят ли новый email другим пользователем
+        if (!person.getEmail().equals(newEmail)) {
+            Optional<Person> existingPerson = peopleRepository.findByEmail(newEmail);
+            if (existingPerson.isPresent() && !existingPerson.get().getId().equals(person.getId())) {
+                throw new RuntimeException("Email уже используется другим пользователем");
+            }
+        }
+
+        // Проверяем, не занят ли новый username другим пользователем
+        if (!person.getUsername().equals(newUsername)) {
+            Optional<Person> existingPerson = peopleRepository.findByUsername(newUsername);
+            if (existingPerson.isPresent() && !existingPerson.get().getId().equals(person.getId())) {
+                throw new RuntimeException("Имя пользователя уже занято");
+            }
+        }
+
+        // Обновляем данные
+        person.setUsername(newUsername);
+        person.setEmail(newEmail);
+
+        // Обновляем пароль только если он указан и не пустой
+        if (newPassword != null && !newPassword.trim().isEmpty()) {
+            person.setPassword(newPassword);
+        }
+
+        Person updatedPerson = peopleRepository.save(person);
+        return convertToPersonResponseDTO(Optional.of(updatedPerson));
     }
 
     private PersonResponseDTO convertToPersonResponseDTO(Optional<Person> byUsername) {

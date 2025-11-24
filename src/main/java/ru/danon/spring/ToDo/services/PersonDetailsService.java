@@ -6,7 +6,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import ru.danon.spring.ToDo.models.Person;
-import ru.danon.spring.ToDo.repositories.PeopleRepository;
+import ru.danon.spring.ToDo.repositories.jpa.PeopleRepository;
 import ru.danon.spring.ToDo.security.PersonDetails;
 
 

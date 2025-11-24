@@ -41,8 +41,34 @@ public class TaskAssignment {
     @Column(name = "assigned_at", updatable = false)
     private LocalDateTime assignedAt;
 
-    @Column(name = "updated_at", updatable = false)
+    @Column(name = "updated_at")
     private LocalDateTime updated_At;
+
+    @Column(name = "solution_file_name")
+    private String solutionFileName;
+
+    @Column(name = "solution_file_path")
+    private String solutionFilePath;
+
+    @Column(name = "solution_file_size")
+    private Long solutionFileSize;
+
+    @Column(name = "solution_uploaded_at")
+    private LocalDateTime solutionUploadedAt;
+
+    @Column(name = "grade")
+    private Integer grade;
+
+    @Column(name = "teacher_comment")
+    private String teacherComment;
+
+    public boolean canUploadSolution() {
+        return this.task.getDeadline().isAfter(LocalDateTime.now());
+    }
+
+    public boolean hasSolution() {
+        return this.solutionFilePath != null && !this.solutionFilePath.trim().isEmpty();
+    }
 
     public Integer getTaskId() {
         return taskId;
@@ -106,5 +132,53 @@ public class TaskAssignment {
 
     public void setUpdated_At(LocalDateTime updated_At) {
         this.updated_At = updated_At;
+    }
+
+    public String getSolutionFileName() {
+        return solutionFileName;
+    }
+
+    public void setSolutionFileName(String solutionFileName) {
+        this.solutionFileName = solutionFileName;
+    }
+
+    public String getSolutionFilePath() {
+        return solutionFilePath;
+    }
+
+    public void setSolutionFilePath(String solutionFilePath) {
+        this.solutionFilePath = solutionFilePath;
+    }
+
+    public Long getSolutionFileSize() {
+        return solutionFileSize;
+    }
+
+    public void setSolutionFileSize(Long solutionFileSize) {
+        this.solutionFileSize = solutionFileSize;
+    }
+
+    public LocalDateTime getSolutionUploadedAt() {
+        return solutionUploadedAt;
+    }
+
+    public void setSolutionUploadedAt(LocalDateTime solutionUploadedAt) {
+        this.solutionUploadedAt = solutionUploadedAt;
+    }
+
+    public Integer getGrade() {
+        return grade;
+    }
+
+    public void setGrade(Integer grade) {
+        this.grade = grade;
+    }
+
+    public String getTeacherComment() {
+        return teacherComment;
+    }
+
+    public void setTeacherComment(String teacherComment) {
+        this.teacherComment = teacherComment;
     }
 }
