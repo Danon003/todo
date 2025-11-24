@@ -1,6 +1,7 @@
 package ru.danon.spring.ToDo.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 public class TaskResponseDTO {
@@ -9,7 +10,7 @@ public class TaskResponseDTO {
     private String description;
     private LocalDateTime deadline;
     private String priority;
-    //private String userStatus;
+    private List<TagDTO> tags;
     private AuthorDTO author;
     private LocalDateTime createdAt;
 
@@ -83,14 +84,6 @@ public class TaskResponseDTO {
         this.priority = priority;
     }
 
-//    public String getUserStatus() {
-//        return userStatus;
-//    }
-//
-//    public void setUserStatus(String userStatus) {
-//        this.userStatus = userStatus;
-//    }
-
     public AuthorDTO getAuthor() {
         return author;
     }
@@ -105,6 +98,14 @@ public class TaskResponseDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public List<TagDTO> getTag() {
+        return tags;
+    }
+
+    public void setTag(List<TagDTO> tags) {
+        this.tags = tags;
     }
 
     @Override

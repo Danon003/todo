@@ -158,4 +158,65 @@ public class NotificationProducerService {
 
         sendNotification(event);
     }
+
+    public void sendSolutionUploadedNotification(Integer teacherUserId, String teacherRole,
+                                                 String studentName, String taskTitle, Integer taskId) {
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("SOLUTION_UPLOADED");
+        event.setTitle("Новое решение задачи");
+        event.setMessage("Студент " + studentName + " загрузил решение по задаче: " + taskTitle);
+        event.setUserId(teacherUserId);
+        event.setUserRole(teacherRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "taskId", taskId,
+                "studentName", studentName,
+                "taskTitle", taskTitle
+        ));
+
+        sendNotification(event);
+    }
+
+    /**
+     * Уведомление об оценке решения преподавателем
+     */
+    public void sendSolutionGradedNotification(Integer studentUserId, String studentRole,
+                                               String teacherName, String taskTitle, Integer grade,
+                                               String comment, Integer taskId) {
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("SOLUTION_GRADED");
+        event.setTitle("Оценка вашего решения");
+        event.setMessage("Преподаватель " + teacherName + " оценил ваше решение по задаче: " + taskTitle);
+        event.setUserId(studentUserId);
+        event.setUserRole(studentRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "taskId", taskId,
+                "teacherName", teacherName,
+                "taskTitle", taskTitle,
+                "grade", grade,
+                "comment", comment
+        ));
+
+        sendNotification(event);
+    }
+
+    public void sendCommentNotification(Integer studentUserId, String username,
+                                        String taskTitle, Integer taskId) {
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("New_Comment");
+        event.setTitle("Новый комментарий");
+        event.setMessage("Пользователь " + username + " оставил комментарий к задаче: " + taskTitle);
+        event.setUserId(studentUserId);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "taskId", taskId,
+                "taskTitle", taskTitle
+        ));
+
+        sendNotification(event);
+    }
 }

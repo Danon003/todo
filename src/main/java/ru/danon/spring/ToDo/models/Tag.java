@@ -14,12 +14,11 @@ public class Tag {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private int id;
+    private Integer id;
 
     @NotNull(message = "Имя тега не должно быть пустым")
-    @UniqueElements
     @Size(min = 2, max = 50, message = "Название тега должно быть от 2 до 50 символов")
-    @Column(name = "name")
+    @Column(name = "name", unique = true)
     private String name;
 
     @OneToMany(mappedBy = "tag", cascade = CascadeType.ALL)
@@ -27,11 +26,11 @@ public class Tag {
 
     public Tag() {}
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 

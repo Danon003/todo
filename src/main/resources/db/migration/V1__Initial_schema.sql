@@ -1,0 +1,122 @@
+-- -- Flyway migration: Initial database schema
+-- -- This migration creates all tables for the TaskTracker application
+--
+-- -- Table: users (Person entity)
+-- CREATE TABLE IF NOT EXISTS users (
+--                                      id SERIAL PRIMARY KEY,
+--                                      name VARCHAR(100) NOT NULL,
+--                                      email VARCHAR(255) NOT NULL UNIQUE,
+--                                      password VARCHAR(255) NOT NULL,
+--                                      role VARCHAR(50),
+--                                      created_at TIMESTAMP
+-- );
+--
+-- -- Table: groups
+-- CREATE TABLE IF NOT EXISTS groups (
+--                                       id SERIAL PRIMARY KEY,
+--                                       name VARCHAR(100) NOT NULL,
+--                                       description TEXT,
+--                                       created_at TIMESTAMP,
+--                                       teacher_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+-- );
+--
+-- -- Table: tasks
+-- CREATE TABLE IF NOT EXISTS tasks (
+--                                      id SERIAL PRIMARY KEY,
+--                                      title VARCHAR(255) NOT NULL,
+--                                      description TEXT,
+--                                      deadline TIMESTAMP,
+--                                      priority VARCHAR(50),
+--                                      author_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+--                                      created_at TIMESTAMP
+-- );
+--
+-- -- Table: tags
+-- CREATE TABLE IF NOT EXISTS tags (
+--                                     id SERIAL PRIMARY KEY,
+--                                     name VARCHAR(50) NOT NULL UNIQUE
+-- );
+--
+-- -- Table: task_assignments (composite primary key)
+-- CREATE TABLE IF NOT EXISTS task_assignments (
+--                                                 task_id INTEGER NOT NULL,
+--                                                 user_id INTEGER NOT NULL,
+--                                                 assigned_by INTEGER REFERENCES users(id) ON DELETE RESTRICT,
+--                                                 status VARCHAR(50) DEFAULT 'NOT_STARTED',
+--                                                 assigned_at TIMESTAMP,
+--                                                 updated_at TIMESTAMP,
+--                                                 solution_file_name VARCHAR(255),
+--                                                 solution_file_path TEXT,
+--                                                 solution_file_size BIGINT,
+--                                                 solution_uploaded_at TIMESTAMP,
+--                                                 grade INTEGER,
+--                                                 teacher_comment TEXT,
+--                                                 PRIMARY KEY (task_id, user_id),
+--                                                 FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+--                                                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+-- );
+--
+-- -- Table: user_groups (composite primary key with embedded id)
+-- CREATE TABLE IF NOT EXISTS user_groups (
+--                                            user_id INTEGER NOT NULL,
+--                                            group_id INTEGER NOT NULL,
+--                                            created_at TIMESTAMP,
+--                                            PRIMARY KEY (user_id, group_id),
+--                                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+--                                            FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+-- );
+--
+-- -- Table: task_tags (composite primary key)
+-- CREATE TABLE IF NOT EXISTS task_tags (
+--                                          task_id INTEGER NOT NULL,
+--                                          tag_id INTEGER NOT NULL,
+--                                          PRIMARY KEY (task_id, tag_id),
+--                                          FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+--                                          FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+-- );
+--
+-- -- Table: task_files
+-- CREATE TABLE IF NOT EXISTS task_files (
+--                                           id SERIAL PRIMARY KEY,
+--                                           task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+--                                           original_file_name VARCHAR(255),
+--                                           stored_file_name VARCHAR(255),
+--                                           file_path TEXT,
+--                                           file_size BIGINT,
+--                                           file_type VARCHAR(100),
+--                                           uploaded_at TIMESTAMP,
+--                                           uploaded_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+-- );
+--
+-- -- Table: notifications
+-- CREATE TABLE IF NOT EXISTS notifications (
+--                                              id SERIAL PRIMARY KEY,
+--                                              user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+--                                              title VARCHAR(100) NOT NULL,
+--                                              message TEXT,
+--                                              is_read BOOLEAN NOT NULL DEFAULT FALSE,
+--                                              created_at TIMESTAMP
+-- );
+--
+-- -- Table: role_audit_log
+-- CREATE TABLE IF NOT EXISTS role_audit_log (
+--                                               id SERIAL PRIMARY KEY,
+--                                               user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+--                                               old_role VARCHAR(50),
+--                                               new_role VARCHAR(50),
+--                                               changed_at TIMESTAMP
+-- );
+--
+-- -- Create indexes for better performance
+-- CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+-- CREATE INDEX IF NOT EXISTS idx_tasks_author_id ON tasks(author_id);
+-- CREATE INDEX IF NOT EXISTS idx_tasks_deadline ON tasks(deadline);
+-- CREATE INDEX IF NOT EXISTS idx_task_assignments_user_id ON task_assignments(user_id);
+-- CREATE INDEX IF NOT EXISTS idx_task_assignments_task_id ON task_assignments(task_id);
+-- CREATE INDEX IF NOT EXISTS idx_task_assignments_status ON task_assignments(status);
+-- CREATE INDEX IF NOT EXISTS idx_user_groups_user_id ON user_groups(user_id);
+-- CREATE INDEX IF NOT EXISTS idx_user_groups_group_id ON user_groups(group_id);
+-- CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+-- CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
+-- CREATE INDEX IF NOT EXISTS idx_role_audit_log_user_id ON role_audit_log(user_id);
+--

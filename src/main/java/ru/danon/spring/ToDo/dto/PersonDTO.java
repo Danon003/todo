@@ -13,7 +13,6 @@ public class PersonDTO {
     @NotEmpty(message = "Email не должен быть пустым")
     private String email;
 
-    @NotEmpty(message = "Пароль не должен быть пустым")
     private String password;
 
     public String getPassword() {

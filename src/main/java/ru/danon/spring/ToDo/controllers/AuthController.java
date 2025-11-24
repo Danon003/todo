@@ -3,6 +3,7 @@ package ru.danon.spring.ToDo.controllers;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.AuthenticationDTO;
 import ru.danon.spring.ToDo.dto.PersonDTO;
+import ru.danon.spring.ToDo.dto.ResetPasswordRequest;
 import ru.danon.spring.ToDo.models.Person;
 import ru.danon.spring.ToDo.security.JWTUtil;
 import ru.danon.spring.ToDo.services.PeopleService;
@@ -44,6 +46,11 @@ public class AuthController {
     public Map<String, String> performRegistration(@RequestBody @Valid PersonDTO personDTO,
                                                    BindingResult bindingResult) {
 
+        // Проверяем, что пароль указан при регистрации
+        if (personDTO.getPassword() == null || personDTO.getPassword().trim().isEmpty()) {
+            return Map.of("message", "Пароль обязателен для регистрации!");
+        }
+
         Person person = convertToPerson(personDTO);
 
         personValidator.validate(person, bindingResult);
@@ -72,6 +79,26 @@ public class AuthController {
 
         String token = jwtUtil.generateToken(authenticationDTO.getUsername());
         return Map.of("jwt-token", token);
+    }
+
+    @PostMapping("forgot-password")
+    public ResponseEntity<?> performForgotPassword(@RequestBody ForgotPasswordRequest  request) {
+        try{
+            registrationService.initiatePasswordReset(request.getEmail());
+            return ResponseEntity.ok().build();
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body("Ошибка отправки кода");
+        }
+    }
+
+    @PostMapping("reset-password")
+    public ResponseEntity<?> performResetPassword(@RequestBody ResetPasswordRequest request) {
+        try{
+            registrationService.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
+            return ResponseEntity.ok().build();
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body("Ошибка сброса пароля");
+        }
     }
 
     public Person convertToPerson(PersonDTO personDTO) {
