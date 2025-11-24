@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 import ru.danon.spring.ToDo.events.NotificationEvent;
 
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.UUID;
 
@@ -16,6 +16,8 @@ import java.util.UUID;
 public class NotificationProducerService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationProducerService.class);
+    private static final DateTimeFormatter MEETING_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private final KafkaTemplate<String, NotificationEvent> kafkaTemplate;
 
     public NotificationProducerService(KafkaTemplate<String, NotificationEvent> kafkaTemplate) {
@@ -218,5 +220,71 @@ public class NotificationProducerService {
         ));
 
         sendNotification(event);
+    }
+
+    public void sendVideoMeetingCreatedNotification(Integer userId,
+                                                    String userRole,
+                                                    String meetingTitle,
+                                                    LocalDateTime startTime,
+                                                    Integer meetingId,
+                                                    String groupName) {
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("VIDEO_MEETING_CREATED");
+        event.setTitle("Новая видеовстреча");
+        event.setMessage(buildMeetingCreationMessage(meetingTitle, startTime, groupName));
+        event.setUserId(userId);
+        event.setUserRole(userRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "meetingId", meetingId,
+                "meetingTitle", meetingTitle,
+                "startTime", startTime != null ? startTime.toString() : null,
+                "groupName", groupName
+        ));
+
+        sendNotification(event);
+    }
+
+    public void sendVideoMeetingReminderNotification(Integer userId,
+                                                     String userRole,
+                                                     String meetingTitle,
+                                                     LocalDateTime startTime,
+                                                     Integer meetingId,
+                                                     String meetingUrl) {
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("VIDEO_MEETING_REMINDER");
+        event.setTitle("Скоро видеовстреча");
+        event.setMessage(buildMeetingReminderMessage(meetingTitle));
+        event.setUserId(userId);
+        event.setUserRole(userRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "meetingId", meetingId,
+                "meetingTitle", meetingTitle,
+                "startTime", startTime != null ? startTime.toString() : null,
+                "meetingUrl", meetingUrl
+        ));
+
+        sendNotification(event);
+    }
+
+    private String buildMeetingCreationMessage(String title, LocalDateTime startTime, String groupName) {
+        StringBuilder builder = new StringBuilder("Назначена видеовстреча ");
+        builder.append("\"").append(title).append("\"");
+        if (startTime != null) {
+            builder.append(" на ").append(startTime.format(MEETING_TIME_FORMATTER));
+        }
+        if (groupName != null) {
+            builder.append(" для группы ").append(groupName);
+        } else {
+            builder.append(" для всех студентов");
+        }
+        return builder.append(".").toString();
+    }
+
+    private String buildMeetingReminderMessage(String title) {
+        return "Через 10 минут начнется видеовстреча \"" + title + "\".";
     }
 }
