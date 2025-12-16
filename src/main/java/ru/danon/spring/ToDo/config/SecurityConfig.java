@@ -41,11 +41,12 @@ public class SecurityConfig {
                         .requestMatchers("/auth/login", "/auth/registration",
                                 "/auth/forgot-password", "auth/reset-password").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-resources/*", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().hasAnyRole("STUDENT", "TEACHER", "ADMIN")
                 )
                 .sessionManagement(session ->
                         session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

@@ -1,4 +1,4 @@
-package ru.danon.spring.ToDo.controllers;
+package ru.danon.spring.ToDo.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

@@ -43,15 +43,15 @@ public class VideoMeetingService {
             VideoMeetingRepository videoMeetingRepository,
             PeopleRepository peopleRepository,
             GroupRepository groupRepository,
-            JitsiMeetService jitsiMeetService, // ЗАМЕНИЛИ ТУТ
+            JitsiMeetService jitsiMeetService,
             ModelMapper modelMapper,
             GroupService groupService,
             NotificationProducerService notificationProducerService,
-            @Value("${video.meetings.cleanup-after-days:14}") long cleanupAfterDays) {
+            @Value("${video.meetings.cleanup-after-days:4}") long cleanupAfterDays) {
         this.videoMeetingRepository = videoMeetingRepository;
         this.peopleRepository = peopleRepository;
         this.groupRepository = groupRepository;
-        this.jitsiMeetService = jitsiMeetService; // И ТУТ
+        this.jitsiMeetService = jitsiMeetService;
         this.modelMapper = modelMapper;
         this.groupService = groupService;
         this.notificationProducerService = notificationProducerService;
@@ -83,7 +83,6 @@ public class VideoMeetingService {
             group.ifPresent(meeting::setGroup);
         }
 
-        // ✅ СОЗДАЕМ ВСТРЕЧУ ЧЕРЕЗ JITSI MEET (просто и надежно)
         Map<String, String> meetResult = jitsiMeetService.createMeeting(
                 createDTO.getTitle(),
                 createDTO.getDescription()
@@ -95,6 +94,7 @@ public class VideoMeetingService {
         notifyMeetingCreated(savedMeeting);
         return convertToDTO(savedMeeting);
     }
+
     /**
      * Получает все встречи с учетом роли пользователя
      */
@@ -127,20 +127,13 @@ public class VideoMeetingService {
             Person student = peopleRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("Студент не найден: " + username));
 
-            System.out.println("🎓 Поиск встреч для студента: " + username + ", ID: " + student.getId());
-
-            // Получаем группу студента
             Integer studentGroupId = getStudentGroupId(student);
-            System.out.println("🎓 Группа студента: " + studentGroupId);
 
-            // Находим встречи: без группы ИЛИ для группы студента
             List<VideoMeeting> meetings = videoMeetingRepository.findByIsActiveTrueAndGroupIdOrGroupIsNull(studentGroupId);
 
-            System.out.println("🎓 Найдено встреч для студента: " + meetings.size());
             meetings.forEach(meeting -> {
                 String groupInfo = meeting.getGroup() != null ?
                         "группа " + meeting.getGroup().getId() : "для всех";
-                System.out.println("📝 " + meeting.getTitle() + " (" + groupInfo + ")");
             });
 
             return meetings.stream()
@@ -151,7 +144,6 @@ public class VideoMeetingService {
             System.err.println("❌ Ошибка при получении встреч для студента: " + e.getMessage());
             e.printStackTrace();
 
-            // Fallback: возвращаем встречи без группы
             return videoMeetingRepository.findActiveWithoutGroup().stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
@@ -167,8 +159,6 @@ public class VideoMeetingService {
             if (groupService.getUserGroup(student.getUsername()) != null)
                 return groupService.getUserGroup(student.getUsername());
 
-
-            System.out.println("⚠️ У студента " + student.getUsername() + " не найдена группа");
             return null;
 
         } catch (Exception e) {
@@ -187,12 +177,10 @@ public class VideoMeetingService {
         String role = creator.getRole();
 
         if (role.equals("ROLE_TEACHER") || role.equals("ROLE_ADMIN")) {
-            // Преподаватели видят все свои встречи
             return videoMeetingRepository.findActiveByCreatedById(creator.getId()).stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
         } else {
-            // Студенты видят только свои встречи
             return videoMeetingRepository.findByCreatedByAndIsActive(creator, true).stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
@@ -231,7 +219,6 @@ public class VideoMeetingService {
         Person creator = peopleRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        // Проверяем права доступа
         if (!meeting.getCreatedBy().getId().equals(creator.getId()) &&
                 !creator.getRole().equals("ROLE_ADMIN")) {
             throw new RuntimeException("Нет прав для редактирования этой встречи");
@@ -268,17 +255,12 @@ public class VideoMeetingService {
         Person user = peopleRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        boolean isAdmin = "ROLE_ADMIN".equals(user.getRole());
         boolean isCreatorTeacher = "ROLE_TEACHER".equals(user.getRole()) &&
                 meeting.getCreatedBy() != null &&
                 meeting.getCreatedBy().getId().equals(user.getId());
 
-        if (!isAdmin && !isCreatorTeacher) {
+        if (!isCreatorTeacher) {
             throw new RuntimeException("Нет прав для удаления этой встречи");
-        }
-
-        if (hasMeetingEnded(meeting) && !isAdmin) {
-            throw new RuntimeException("Удалять прошедшие встречи может только администратор");
         }
 
         meeting.setIsActive(false);
@@ -359,7 +341,7 @@ public class VideoMeetingService {
 
     private void notifyMeetingCreated(VideoMeeting meeting) {
         List<Person> recipients = resolveMeetingParticipants(meeting);
-        String groupName = meeting.getGroup() != null ? meeting.getGroup().getName() : null;
+        String groupName = meeting.getGroup() != null ? meeting.getGroup().getName() : "всех студентов";
 
         recipients.forEach(person -> notificationProducerService.sendVideoMeetingCreatedNotification(
                 person.getId(),
@@ -403,6 +385,32 @@ public class VideoMeetingService {
                 .filter(person -> person != null && person.getId() != null)
                 .filter(person -> seenIds.add(person.getId()))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void completeMeeting(Integer meetingId, String username) {
+        VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
+                .orElseThrow(() -> new RuntimeException("Встреча не найдена"));
+
+        Person user = peopleRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        // Проверяем права: создатель встречи или админ
+        if (!meeting.getCreatedBy().getId().equals(user.getId()) &&
+                !user.getRole().equals("ROLE_ADMIN")) {
+            throw new RuntimeException("Вы можете завершать только свои встречи");
+        }
+
+        // Проверяем, что встреча активна
+        if (!meeting.getIsActive()) {
+            throw new RuntimeException("Встреча уже завершена");
+        }
+
+        // Завершаем встречу
+        meeting.setIsActive(false);
+        meeting.setUpdatedAt(LocalDateTime.now());
+
+        videoMeetingRepository.save(meeting);
     }
 }
 

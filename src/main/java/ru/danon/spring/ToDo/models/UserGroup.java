@@ -1,6 +1,7 @@
 package ru.danon.spring.ToDo.models;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import ru.danon.spring.ToDo.models.id.UserGroupId;
@@ -18,13 +19,13 @@ public class UserGroup {
     private LocalDateTime createdAt;
 
     @MapsId("userId")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id")
     private Person user;
 
     @MapsId("groupId")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "group_id")
     private Group group;

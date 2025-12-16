@@ -277,7 +277,7 @@ public class NotificationProducerService {
             builder.append(" на ").append(startTime.format(MEETING_TIME_FORMATTER));
         }
         if (groupName != null) {
-            builder.append(" для группы ").append(groupName);
+            builder.append(" для  ").append(groupName);
         } else {
             builder.append(" для всех студентов");
         }

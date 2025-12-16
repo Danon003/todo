@@ -11,6 +11,7 @@ import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.models.TaskTag;
 import ru.danon.spring.ToDo.models.id.TaskTagId;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -18,8 +19,11 @@ public interface TaskTagRepository extends JpaRepository<TaskTag, TaskTagId> {
     List<TaskTag> findByTaskId(Integer taskId);
     List<TaskTag> findByTagId(Integer tagId);
     void deleteByTaskId(Integer taskId);
-    @Query("SELECT tt FROM TaskTag tt JOIN FETCH tt.tag WHERE tt.task.id = :taskId")
+    @Query("SELECT tt FROM TaskTag tt JOIN FETCH tt.tag WHERE tt.taskId = :taskId")
     List<TaskTag> findTaskTagsWithTagsByTaskId(@Param("taskId") Integer taskId);
+
+    @Query("SELECT tt FROM TaskTag tt JOIN FETCH tt.tag WHERE tt.taskId IN :taskIds")
+    List<TaskTag> findTaskTagsWithTagsByTaskIds(@Param("taskIds") Collection<Integer> taskIds);
     boolean existsByTaskIdAndTagId(Integer taskId, Integer tagId);
 
     List<Task> findTasksByTag_Name(@NotNull(message = "Имя тега не должно быть пустым") @UniqueElements @Size(min = 2, max = 50, message = "Название тега должно быть от 2 до 50 символов") String tagName);

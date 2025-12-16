@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.danon.spring.ToDo.dto.*;
+import ru.danon.spring.ToDo.exceptions.NotSolutionException;
 import ru.danon.spring.ToDo.models.*;
 import ru.danon.spring.ToDo.models.id.TaskAssignmentId;
 import ru.danon.spring.ToDo.repositories.jpa.TaskAssignmentRepository;
@@ -225,16 +226,21 @@ public class TaskService {
         Person user = peopleService.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
 
-        return taskAssignmentRepository.findByUser(user)
-                .stream()
+        List<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user);
+        List<Integer> taskIds = assignments.stream()
+                .map(TaskAssignment::getTask)
+                .filter(Objects::nonNull)
+                .map(Task::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Integer, List<Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
+
+        return assignments.stream()
                 .map(assignment -> {
                     Task task = assignment.getTask();
-
-                    List<Tag> taskTags = tagService.getTaskTags(task.getId());
-                    List<TagDTO> tags = new ArrayList<>();
-                    for (Tag tag : taskTags) {
-                        tags.add(convertToTagDTO(tag));
-                    }
+                    List<TagDTO> tags = toTagDTOs(tagsByTask.get(task.getId()));
 
                     return new MyTaskDTO(
                             task.getId(),
@@ -256,17 +262,22 @@ public class TaskService {
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
         List<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user);
+        List<Integer> taskIds = assignments.stream()
+                .map(TaskAssignment::getTask)
+                .filter(Objects::nonNull)
+                .map(Task::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Integer, List<Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
 
         return assignments.stream().map(assignment -> {
             Task task = assignment.getTask();
             String status = assignment.getStatus();
             Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
 
-            List<Tag> taskTags = tagService.getTaskTags(task.getId());
-            List<TagDTO> tags = new ArrayList<>();
-            for (Tag tag : taskTags) {
-                tags.add(convertToTagDTO(tag));
-            }
+            List<TagDTO> tags = toTagDTOs(tagsByTask.get(task.getId()));
 
             return new MyTaskDTO(
                     task.getId(),
@@ -324,7 +335,7 @@ public class TaskService {
         TaskAssignment assignment = taskAssignmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found or not assigned to you"));
 
-       String status = assignment.getStatus();
+        String status = assignment.getStatus();
 
         return new StatusDTO(status);
     }
@@ -350,9 +361,7 @@ public class TaskService {
         Task task = assignment.getTask();
         Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
 
-        List<TagDTO> tags = tagService.getTaskTags(task.getId()).stream()
-                .map(this::convertToTagDTO)
-                .collect(Collectors.toList());
+        List<TagDTO> tags = toTagDTOs(tagService.getTaskTags(task.getId()));
 
         return new MyTaskDTO(
                 task.getId(),
@@ -392,21 +401,21 @@ public class TaskService {
     public Set<TaskResponseDTO> getGroupTasks(Integer groupId) {
         List<Person> groupMembers = groupService.getPersonsByGroupId(groupId);
 
-        // Создаем Set для хранения уникальных задач
-        Set<TaskResponseDTO> groupTasks = new HashSet<>();
-
-        // Для каждого пользователя в группе получаем его задачи и добавляем в Set
-        for (Person member : groupMembers) {
-            List<Task> userTasks = taskAssignmentRepository.findByUser(member)
-                    .stream()
-                    .map(TaskAssignment::getTask)
-                    .toList();
-
-            // Конвертируем задачи в DTO и добавляем в Set
-            userTasks.forEach(task -> groupTasks.add(convertToResponseDTO(task)));
+        if (groupMembers.isEmpty()) {
+            return Collections.emptySet();
         }
 
-        return groupTasks;
+        List<Integer> memberIds = groupMembers.stream()
+                .map(Person::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        return taskAssignmentRepository.findByUserIdIn(memberIds).stream()
+                .map(TaskAssignment::getTask)
+                .filter(Objects::nonNull)
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toCollection(HashSet::new));
     }
 
     @Modifying
@@ -477,7 +486,19 @@ public class TaskService {
         TagDTO dto = new TagDTO();
         dto.setId(tag.getId());
         dto.setName(tag.getName());
-        return dto;    }
+        return dto;
+    }
+
+    private List<TagDTO> toTagDTOs(List<Tag> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return tags.stream()
+                .map(this::convertToTagDTO)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
     private PersonResponseDTO convertToPersonDTO(Person user) {
         return modelMapper.map(user, PersonResponseDTO.class);
     }
@@ -584,11 +605,7 @@ public class TaskService {
         dto.setAuthorId(task.getAuthor() != null ? task.getAuthor().getId() : null);
 
         // Теги преобразуем вручную
-        List<TagDTO> tagDTOs = tagService.getTaskTags(task.getId())
-                .stream()
-                .map(tag -> new TagDTO(tag.getId(), tag.getName()))
-                .collect(Collectors.toList());
-        dto.setTags(tagDTOs);
+        dto.setTags(toTagDTOs(tagService.getTaskTags(task.getId())));
 
         return dto;
     }
@@ -806,7 +823,7 @@ public class TaskService {
                 .orElseThrow(() -> new RuntimeException("Назначение не найдено"));
 
         if (!assignment.hasSolution()) {
-            throw new RuntimeException("Решение не найдено");
+            throw new NotSolutionException("Решение не найдено");
         }
 
         SolutionDTO solutionDTO = new SolutionDTO();

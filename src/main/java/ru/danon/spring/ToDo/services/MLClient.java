@@ -46,7 +46,7 @@ public class MLClient {
             logger.debug("Sending ML prediction request for title: {}", title);
 
             ResponseEntity<MLResponse> response = restTemplate.exchange(
-                    mlServiceUrl + "/api/predict-tags",
+                    mlServiceUrl + "/predict-tags",
                     HttpMethod.POST,
                     entity,
                     MLResponse.class

@@ -1,5 +1,6 @@
 package ru.danon.spring.ToDo.repositories.jpa;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,14 +12,18 @@ import ru.danon.spring.ToDo.models.TaskAssignment;
 import ru.danon.spring.ToDo.models.id.TaskAssignmentId;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, TaskAssignmentId> {
     List<TaskAssignment> findByTask(Task task);
+
+    @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
     List<TaskAssignment> findByUser(Person user);
 
+    @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
     @Query("SELECT ta FROM TaskAssignment ta WHERE ta.user.id = :userId AND ta.task.id = :taskId")
     Optional<TaskAssignment> findByUserIdAndTaskId(@Param("userId") Integer userId,
                                                    @Param("taskId") Integer taskId);
@@ -51,8 +56,14 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
             @Param("windowEnd") LocalDateTime windowEnd,
             @Param("now") LocalDateTime now
     );
+    @EntityGraph(attributePaths = {"user"})
     List<TaskAssignment> findByTaskId(Integer taskId);
+
+    @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
     List<TaskAssignment> findByUserId(Integer userId);
+
+    @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
+    List<TaskAssignment> findByUserIdIn(Collection<Integer> userIds);
 
     @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE ta.assignedBy.id = :teacherId AND ta.status != 'COMPLETED' AND ta.status != 'OVERDUE' AND ta.updated_At < :twoWeeksAgo")
     List<TaskAssignment> findStuckByTeacherId(@Param("teacherId") Integer teacherId, @Param("twoWeeksAgo") LocalDateTime twoWeeksAgo);

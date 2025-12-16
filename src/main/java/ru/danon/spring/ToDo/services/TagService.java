@@ -10,8 +10,10 @@ import ru.danon.spring.ToDo.repositories.jpa.TagRepository;
 import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
 import ru.danon.spring.ToDo.repositories.jpa.TaskTagRepository;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -86,13 +88,26 @@ public class TagService {
 
     public List<Tag> getTaskTags(Integer taskId) {
         try {
-            return taskTagRepository.findByTaskId(taskId)
+            return taskTagRepository.findTaskTagsWithTagsByTaskId(taskId)
                     .stream()
                     .map(TaskTag::getTag)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             return Collections.emptyList();
         }
+    }
+
+    public Map<Integer, List<Tag>> getTaskTagsBatch(Collection<Integer> taskIds) {
+        if (taskIds == null || taskIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return taskTagRepository.findTaskTagsWithTagsByTaskIds(taskIds).stream()
+                .filter(taskTag -> taskTag.getTaskId() != null && taskTag.getTag() != null)
+                .collect(Collectors.groupingBy(
+                        TaskTag::getTaskId,
+                        Collectors.mapping(TaskTag::getTag, Collectors.toList())
+                ));
     }
 
     public List<Task> getTaskByTag(String tagName) {
