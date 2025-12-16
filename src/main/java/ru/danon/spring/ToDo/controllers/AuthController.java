@@ -7,18 +7,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.AuthenticationDTO;
+import ru.danon.spring.ToDo.dto.ForgotPasswordRequest;
 import ru.danon.spring.ToDo.dto.PersonDTO;
 import ru.danon.spring.ToDo.dto.ResetPasswordRequest;
 import ru.danon.spring.ToDo.models.Person;
 import ru.danon.spring.ToDo.security.JWTUtil;
-import ru.danon.spring.ToDo.services.PeopleService;
 import ru.danon.spring.ToDo.services.RegistrationService;
 import ru.danon.spring.ToDo.util.PersonValidator;
 
@@ -82,7 +81,7 @@ public class AuthController {
     }
 
     @PostMapping("forgot-password")
-    public ResponseEntity<?> performForgotPassword(@RequestBody ForgotPasswordRequest  request) {
+    public ResponseEntity<?> performForgotPassword(@RequestBody ForgotPasswordRequest request) {
         try{
             registrationService.initiatePasswordReset(request.getEmail());
             return ResponseEntity.ok().build();

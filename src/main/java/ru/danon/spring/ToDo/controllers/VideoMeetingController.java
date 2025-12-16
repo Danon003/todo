@@ -159,6 +159,18 @@ public class VideoMeetingController {
                 "&config.startWithAudioMuted=true" +
                 "&config.startWithVideoMuted=false";
     }
+
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
+    @PostMapping("/{meetingId}/complete")
+    public ResponseEntity<?> completeMeeting(@PathVariable Integer meetingId, Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            videoMeetingService.completeMeeting(meetingId, username);
+            return ResponseEntity.ok(Map.of("message", "Встреча успешно завершена"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }
 
 

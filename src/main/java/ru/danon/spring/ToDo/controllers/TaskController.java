@@ -8,12 +8,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import ru.danon.spring.ToDo.dto.*;
 import ru.danon.spring.ToDo.models.Person;
+import ru.danon.spring.ToDo.models.Tag;
 import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.services.TagService;
 import ru.danon.spring.ToDo.services.TaskService;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -43,16 +45,24 @@ public class TaskController {
     @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{taskId}")
     public void deleteTask(@PathVariable Integer taskId) {
-         taskService.deleteTask(taskId);
+        taskService.deleteTask(taskId);
     }
 
     //работает
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping()
     public ResponseEntity<List<TaskDTO>> getTasks() {
-        return ResponseEntity.ok(taskService.findAllTasks()
-                .stream()
-                .map(this::convertToDTO)
+        List<Task> tasks = taskService.findAllTasks();
+        if (tasks.isEmpty()) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+        List<Integer> taskIds = tasks.stream()
+                .map(Task::getId)
+                .collect(Collectors.toList());
+        Map<Integer, List<Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
+
+        return ResponseEntity.ok(tasks.stream()
+                .map(task -> convertToDTO(task, tagsByTask.get(task.getId())))
                 .collect(Collectors.toList()));
     }
 
@@ -74,17 +84,17 @@ public class TaskController {
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/assign/{taskID}/{userId}")
     public ResponseEntity<?> assignTask(@PathVariable Integer taskID,
-                                                  @PathVariable Integer userId,
-                                                     Authentication authentication) {
+                                        @PathVariable Integer userId,
+                                        Authentication authentication) {
         taskService.assignTask(taskID, userId, authentication.getName());
-       return ResponseEntity.ok().build();
+        return ResponseEntity.ok().build();
     }
 
     //работает
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/assign/{taskID}/group/{groupId}")
     public ResponseEntity<Void> assignTaskForGroup(@PathVariable Integer taskID,
-                                                  @PathVariable Integer groupId,
+                                                   @PathVariable Integer groupId,
                                                    Authentication authentication) {
         taskService.assignTaskForGroup(taskID, groupId, authentication.getName());
         return ResponseEntity.ok().build();
@@ -127,16 +137,16 @@ public class TaskController {
     @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/my/{taskId}/status")
     public ResponseEntity<MyTaskDTO> changeStatusMyTask(@PathVariable Integer taskId,
-                                            @RequestBody StatusDTO statusDTO,
-                                                      Authentication authentication) {
+                                                        @RequestBody StatusDTO statusDTO,
+                                                        Authentication authentication) {
         return ResponseEntity.ok(taskService.changeMyTask(taskId, statusDTO.getStatus(), authentication.getName()));
     }
 
     @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/my/{taskId}/share/{userId}")
     public ResponseEntity<Void> shareTask(@PathVariable Integer taskId,
-                                             @PathVariable Integer userId,
-                                             Authentication authentication) {
+                                          @PathVariable Integer userId,
+                                          Authentication authentication) {
         taskService.shareTask(taskId, userId, authentication.getName());
         return ResponseEntity.ok().build();
     }
@@ -156,6 +166,10 @@ public class TaskController {
 
 
     private TaskDTO convertToTaskDTO(Task task) {
+        return convertToTaskDTO(task, tagService.getTaskTags(task.getId()));
+    }
+
+    private TaskDTO convertToTaskDTO(Task task, List<Tag> tags) {
         TaskDTO dto = new TaskDTO();
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
@@ -164,17 +178,16 @@ public class TaskController {
         dto.setPriority(task.getPriority());
         dto.setAuthorId(task.getAuthor() != null ? task.getAuthor().getId() : null);
 
-        // Теги преобразуем вручную
-        List<TagDTO> tagDTOs = tagService.getTaskTags(task.getId())
-                .stream()
-                .map(tag -> new TagDTO(tag.getId(), tag.getName()))
-                .collect(Collectors.toList());
-        dto.setTags(tagDTOs);
+        dto.setTags(mapTags(tags));
 
         return dto;
     }
 
     private TaskDTO convertToDTO(Task task) {
+        return convertToDTO(task, tagService.getTaskTags(task.getId()));
+    }
+
+    private TaskDTO convertToDTO(Task task, List<Tag> tags) {
         TaskDTO dto = new TaskDTO();
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
@@ -183,15 +196,21 @@ public class TaskController {
         dto.setPriority(task.getPriority());
         dto.setAuthorId(task.getAuthor() != null ? task.getAuthor().getId() : null);
 
-        // Теги преобразуем вручную
-        List<TagDTO> tagDTOs = tagService.getTaskTags(task.getId())
-                .stream()
+        dto.setTags(mapTags(tags));
+
+        return dto;
+    }
+
+    private List<TagDTO> mapTags(List<Tag> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return tags.stream()
                 .filter(Objects::nonNull)
                 .map(tag -> new TagDTO(tag.getId(), tag.getName()))
                 .collect(Collectors.toList());
-        dto.setTags(tagDTOs);
-
-        return dto;    }
+    }
 
     private MyTaskDTO convertToMyTaskDTO(Task task) {
         return modelMapper.map(task, MyTaskDTO.class);

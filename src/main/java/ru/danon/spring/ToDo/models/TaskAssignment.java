@@ -1,6 +1,7 @@
 package ru.danon.spring.ToDo.models;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import ru.danon.spring.ToDo.models.id.TaskAssignmentId;
@@ -20,17 +21,17 @@ public class TaskAssignment {
     @Column(name = "user_id", insertable = false, updatable = false)
     private Integer userId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "task_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Task task;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Person user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.RESTRICT)
     @JoinColumn(name = "assigned_by")
     private Person assignedBy;
