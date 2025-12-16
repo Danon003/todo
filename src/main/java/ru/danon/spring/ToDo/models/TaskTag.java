@@ -1,6 +1,7 @@
 package ru.danon.spring.ToDo.models;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import ru.danon.spring.ToDo.models.Tag;
 import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.models.id.TaskTagId;

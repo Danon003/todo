@@ -3,6 +3,7 @@ package ru.danon.spring.ToDo.controllers;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -39,6 +40,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
     @GetMapping("/users")
     public List<PersonResponseDTO> getAllUsers() {
+
         return convertToResponsePerson(adminService.getAllUsers());
     }
 

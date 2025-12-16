@@ -1,5 +1,6 @@
 package ru.danon.spring.ToDo.repositories.jpa;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @Repository
 public interface UserGroupRepository extends JpaRepository<UserGroup, UserGroupId> {
+    @EntityGraph(attributePaths = {"user", "group"})
     List<UserGroup> findByGroupId(Integer groupId);
     boolean existsByGroupIdAndUserId(Integer groupId, Integer userId);
 
