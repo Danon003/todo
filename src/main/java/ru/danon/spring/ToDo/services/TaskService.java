@@ -2,6 +2,9 @@ package ru.danon.spring.ToDo.services;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
@@ -110,6 +113,11 @@ public class TaskService {
     public List<Task> findAllTasks() {
         return taskRepository.findAll();
     }
+
+    public Page<Task> findAllTasks(Pageable pageable) {
+        return taskRepository.findAll(pageable);
+    }
+
 
     //посмотреть конкретную таску
     public Task findTaskById(Integer taskId) {
@@ -222,12 +230,14 @@ public class TaskService {
     }
 
 
-    public List<MyTaskDTO> findMyTasks(String username) {
+    public Page<MyTaskDTO> findMyTasks(String username, Pageable pageable) {
         Person user = peopleService.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
 
-        List<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user);
-        List<Integer> taskIds = assignments.stream()
+        Page<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user, pageable);
+        if (assignments.isEmpty())
+            return Page.empty(pageable);
+        List<Integer> taskIds = assignments.getContent().stream()
                 .map(TaskAssignment::getTask)
                 .filter(Objects::nonNull)
                 .map(Task::getId)
@@ -237,10 +247,12 @@ public class TaskService {
 
         Map<Integer, List<Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
 
-        return assignments.stream()
-                .map(assignment -> {
+        List<MyTaskDTO> tasks = assignments.getContent().stream().
+                map(assignment -> {
                     Task task = assignment.getTask();
-                    List<TagDTO> tags = toTagDTOs(tagsByTask.get(task.getId()));
+                    String status = assignment.getStatus();
+                    Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
+                    List<TagDTO> tags = toTagDTOs(tagsByTask.getOrDefault(task.getId(), Collections.emptyList()));
 
                     return new MyTaskDTO(
                             task.getId(),
@@ -248,21 +260,26 @@ public class TaskService {
                             task.getDescription(),
                             task.getDeadline(),
                             task.getPriority(),
-                            task.getAuthor() != null ? task.getAuthor().getId() : null,
-                            assignment.getStatus(),
+                            authorId,
+                            status,
                             tags
-                    );
-                })
-                .collect(Collectors.toList());
+                            );
+                        }).toList();
+        return new PageImpl<>(tasks,
+                assignments.getPageable(),
+                assignments.getTotalElements());
     }
 
 
-    public List<MyTaskDTO> findUserTasks(Integer userId) {
+    public Page<MyTaskDTO> findUserTasks(Integer userId, Pageable pageable) {
         Person user = peopleService.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        List<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user);
-        List<Integer> taskIds = assignments.stream()
+        Page<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user, pageable);
+        if (assignments.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        List<Integer> taskIds = assignments.getContent().stream()
                 .map(TaskAssignment::getTask)
                 .filter(Objects::nonNull)
                 .map(Task::getId)
@@ -272,24 +289,29 @@ public class TaskService {
 
         Map<Integer, List<Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
 
-        return assignments.stream().map(assignment -> {
-            Task task = assignment.getTask();
-            String status = assignment.getStatus();
-            Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
+       List<MyTaskDTO> content = assignments.getContent().stream().
+               map(assignment -> {
+                   Task task = assignment.getTask();
+                   String status = assignment.getStatus();
+                   Integer authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
+                   List<TagDTO> tags = toTagDTOs(tagsByTask.getOrDefault(task.getId(), Collections.emptyList()));
 
-            List<TagDTO> tags = toTagDTOs(tagsByTask.get(task.getId()));
-
-            return new MyTaskDTO(
-                    task.getId(),
-                    task.getTitle(),
-                    task.getDescription(),
-                    task.getDeadline(),
-                    task.getPriority(),
-                    authorId,
-                    status,
-                    tags
-            );
-        }).collect(Collectors.toList());
+                   return new MyTaskDTO(
+                           task.getId(),
+                           task.getTitle(),
+                           task.getDescription(),
+                           task.getDeadline(),
+                           task.getPriority(),
+                           authorId,
+                           status,
+                           tags
+                   );
+               }).toList();
+       return new PageImpl<>(
+               content,
+               assignments.getPageable(),
+               assignments.getTotalElements()
+       );
     }
 
     //юзер ищет свою конкретную таску

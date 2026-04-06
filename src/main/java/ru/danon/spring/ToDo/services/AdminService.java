@@ -2,6 +2,8 @@ package ru.danon.spring.ToDo.services;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,8 +47,8 @@ public class AdminService {
         this.modelMapper = modelMapper;
     }
 
-    public List<Person> getAllUsers() {
-        return peopleService.findAll();
+    public Page<Person> getAllUsers(Pageable page) {
+        return peopleService.findAll(page);
     }
 
     public void createGroup(String groupName, String description) {
@@ -147,8 +149,8 @@ public class AdminService {
         return peopleService.save(teacher);
     }
 
-    public List<Person> getUsersByRole(String role) {
-        return peopleService.findByRole("ROLE_" + role);
+    public Page<Person> getUsersByRole(String role, Pageable page) {
+        return peopleService.findByRole("ROLE_" + role, page);
     }
 
     public List<LogResponseDTO> getRoleAuditLogs() {

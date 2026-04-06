@@ -1,5 +1,7 @@
 package ru.danon.spring.ToDo.repositories.jpa;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import ru.danon.spring.ToDo.models.Person;
@@ -12,4 +14,5 @@ public interface PeopleRepository extends JpaRepository<Person, Integer> {
     Optional<Person> findByUsername(String username);
     Optional<Person> findByEmail(String email);
     List<Person> findByRole(String role);
+    Page<Person> findByRole(String role, Pageable page);
 }

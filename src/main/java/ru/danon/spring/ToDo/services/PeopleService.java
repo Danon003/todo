@@ -2,6 +2,8 @@ package ru.danon.spring.ToDo.services;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
@@ -27,6 +29,9 @@ public class PeopleService {
         return peopleRepository.findByUsername(username);
     }
 
+    public Page<Person> findAll(Pageable page) {
+        return peopleRepository.findAll(page);
+    }
     public List<Person> findAll() {
         return peopleRepository.findAll();
     }
@@ -51,6 +56,9 @@ public class PeopleService {
 
     public List<Person> findByRole(String role) {
         return peopleRepository.findByRole(role);
+    }
+    public Page<Person> findByRole(String role, Pageable page) {
+        return peopleRepository.findByRole(role, page);
     }
 
     public PersonResponseDTO getUserInfo(String name) {
