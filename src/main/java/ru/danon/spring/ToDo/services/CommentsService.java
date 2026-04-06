@@ -2,6 +2,8 @@ package ru.danon.spring.ToDo.services;
 
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +28,10 @@ public class CommentsService {
     private final TaskService taskService;
     private final TaskAssignmentRepository taskAssignmentRepository;
 
-    public List<Comment> getTaskComments(Integer taskId) {
-        return commentRepository.findByTaskIdAndParentIdIsNullOrderByCreatedAtAsc(taskId);
+    public Page<CommentDTO> getTaskComments(Integer taskId, Pageable pageable) {
+        return commentRepository
+                .findByTaskIdAndParentIdIsNullOrderByCreatedAtAsc(taskId, pageable)
+                .map(this::convertToCommentDTO);
     }
 
     @Transactional

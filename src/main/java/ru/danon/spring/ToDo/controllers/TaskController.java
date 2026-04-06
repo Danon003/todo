@@ -1,14 +1,23 @@
 package ru.danon.spring.ToDo.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import ru.danon.spring.ToDo.dto.*;
-import ru.danon.spring.ToDo.models.Person;
-import ru.danon.spring.ToDo.models.Tag;
 import ru.danon.spring.ToDo.models.Task;
 import ru.danon.spring.ToDo.services.TagService;
 import ru.danon.spring.ToDo.services.TaskService;
@@ -21,6 +30,8 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/task")
+@Tag(name = "Task Controller", description = "Управление задачами (создание, назначение, выполнение)")
+@SecurityRequirement(name = "bearerAuth")
 public class TaskController {
 
     private final TaskService taskService;
@@ -34,142 +45,252 @@ public class TaskController {
         this.modelMapper = modelMapper;
     }
 
-    //работает
-    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping()
-    public TaskResponseDTO createTask(@RequestBody MyTaskDTO taskDTO, Authentication authentication) {
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Создать задачу", description = "Создает новую задачу (только для TEACHER)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Задача успешно создана",
+                    content = @Content(schema = @Schema(implementation = TaskResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен - требуется роль TEACHER")
+    })
+    public TaskResponseDTO createTask(
+            @Parameter(description = "Данные задачи", required = true)
+            @RequestBody MyTaskDTO taskDTO,
+            Authentication authentication) {
         return taskService.createTask(taskDTO, authentication.getName());
     }
 
-    //работает
-    @PreAuthorize("hasRole('TEACHER')")
     @DeleteMapping("/{taskId}")
-    public void deleteTask(@PathVariable Integer taskId) {
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Удалить задачу", description = "Удаляет задачу по ID (только для TEACHER)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Задача успешно удалена"),
+            @ApiResponse(responseCode = "404", description = "Задача не найдена"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен")
+    })
+    public void deleteTask(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskId) {
         taskService.deleteTask(taskId);
     }
 
-    //работает
-    @PreAuthorize("hasRole('TEACHER')")
     @GetMapping()
-    public ResponseEntity<List<TaskDTO>> getTasks() {
-        List<Task> tasks = taskService.findAllTasks();
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Получить все задачи", description = "Возвращает страницу со всеми задачами (только для TEACHER)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение списка задач",
+                    content = @Content(schema = @Schema(implementation = TaskDTO.class)))
+    })
+    public ResponseEntity<Page<TaskDTO>> getTasks(
+            @Parameter(description = "Параметры пагинации")
+            @PageableDefault Pageable pageable) {
+        Page<Task> tasks = taskService.findAllTasks(pageable);
         if (tasks.isEmpty()) {
-            return ResponseEntity.ok(Collections.emptyList());
+            return ResponseEntity.ok(Page.empty(pageable));
         }
-        List<Integer> taskIds = tasks.stream()
+        List<Integer> taskIds = tasks.getContent().stream()
                 .map(Task::getId)
                 .collect(Collectors.toList());
-        Map<Integer, List<Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
+        Map<Integer, List<ru.danon.spring.ToDo.models.Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
 
-        return ResponseEntity.ok(tasks.stream()
-                .map(task -> convertToDTO(task, tagsByTask.get(task.getId())))
-                .collect(Collectors.toList()));
+        return ResponseEntity.ok(tasks
+                .map(task -> convertToDTO(task, tagsByTask.get(task.getId()))));
     }
 
-    //работает
-    @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/{taskId}")
-    public ResponseEntity<TaskDTO> getTask(@PathVariable Integer taskId) {
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Получить задачу по ID", description = "Возвращает детальную информацию о задаче")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение задачи",
+                    content = @Content(schema = @Schema(implementation = TaskDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Задача не найдена")
+    })
+    public ResponseEntity<TaskDTO> getTask(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskId) {
         return ResponseEntity.ok(convertToTaskDTO(taskService.findTaskById(taskId)));
     }
 
-    @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/student/{userId}")
-    public ResponseEntity<List<MyTaskDTO>> getTasksStudent(@PathVariable Integer userId) {
-        List<MyTaskDTO> tasks = taskService.findUserTasks(userId);
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Получить задачи студента", description = "Возвращает задачи, назначенные конкретному студенту")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение задач студента",
+                    content = @Content(schema = @Schema(implementation = MyTaskDTO.class)))
+    })
+    public ResponseEntity<Page<MyTaskDTO>> getTasksStudent(
+            @Parameter(description = "Параметры пагинации")
+            @PageableDefault Pageable pageable,
+            @Parameter(description = "ID студента", required = true)
+            @PathVariable Integer userId) {
+        Page<MyTaskDTO> tasks = taskService.findUserTasks(userId, pageable);
         return ResponseEntity.ok(tasks);
     }
 
-    //работает
-    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/assign/{taskID}/{userId}")
-    public ResponseEntity<?> assignTask(@PathVariable Integer taskID,
-                                        @PathVariable Integer userId,
-                                        Authentication authentication) {
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Назначить задачу студенту", description = "Назначает задачу конкретному студенту")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Задача успешно назначена"),
+            @ApiResponse(responseCode = "404", description = "Задача или студент не найдены")
+    })
+    public ResponseEntity<?> assignTask(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskID,
+            @Parameter(description = "ID студента", required = true)
+            @PathVariable Integer userId,
+            Authentication authentication) {
         taskService.assignTask(taskID, userId, authentication.getName());
         return ResponseEntity.ok().build();
     }
 
-    //работает
-    @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/assign/{taskID}/group/{groupId}")
-    public ResponseEntity<Void> assignTaskForGroup(@PathVariable Integer taskID,
-                                                   @PathVariable Integer groupId,
-                                                   Authentication authentication) {
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Назначить задачу группе", description = "Назначает задачу всем студентам группы")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Задача успешно назначена группе"),
+            @ApiResponse(responseCode = "404", description = "Задача или группа не найдены")
+    })
+    public ResponseEntity<Void> assignTaskForGroup(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskID,
+            @Parameter(description = "ID группы", required = true)
+            @PathVariable Integer groupId,
+            Authentication authentication) {
         taskService.assignTaskForGroup(taskID, groupId, authentication.getName());
         return ResponseEntity.ok().build();
     }
 
-    //работает
-    @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/{id}/{taskId}/status")
-    public ResponseEntity<TaskStatDTO> getStatusTask(@PathVariable Integer taskId,
-                                                     @PathVariable Integer id,
-                                                     //filter=group||filter=student
-                                                     @RequestParam String filter) {
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Получить статус выполнения задачи", description = "Возвращает статистику выполнения задачи для группы или студента")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение статуса",
+                    content = @Content(schema = @Schema(implementation = TaskStatDTO.class)))
+    })
+    public ResponseEntity<TaskStatDTO> getStatusTask(
+            @Parameter(description = "ID пользователя или группы", required = true)
+            @PathVariable Integer id,
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskId,
+            @Parameter(description = "Тип фильтрации: group или student", required = true, example = "student")
+            @RequestParam String filter) {
         return ResponseEntity.ok(taskService.findStatusTask(id, taskId, filter));
     }
 
-    //работает
-    @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/my")
-    public ResponseEntity<List<MyTaskDTO>> getTasksStudent(Authentication authentication) {
-        List<MyTaskDTO> tasks = taskService.findMyTasks(authentication.getName());
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Получить мои задачи", description = "Возвращает задачи, назначенные текущему студенту")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение задач",
+                    content = @Content(schema = @Schema(implementation = MyTaskDTO.class)))
+    })
+    public ResponseEntity<Page<MyTaskDTO>> getTasksStudent(
+            @Parameter(description = "Параметры пагинации")
+            @PageableDefault Pageable pageable,
+            Authentication authentication) {
+        Page<MyTaskDTO> tasks = taskService.findMyTasks(authentication.getName(), pageable);
         return ResponseEntity.ok(tasks);
     }
 
-    //работает
-    @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/my/{taskId}")
-    public ResponseEntity<MyTaskDTO> getMyTask(@PathVariable Integer taskId, Authentication authentication) {
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Получить мою задачу по ID", description = "Возвращает детальную информацию о задаче для студента")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение задачи",
+                    content = @Content(schema = @Schema(implementation = MyTaskDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Задача не найдена")
+    })
+    public ResponseEntity<MyTaskDTO> getMyTask(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskId,
+            Authentication authentication) {
         return ResponseEntity.ok(taskService.findMyTasksById(taskId, authentication.getName()));
     }
 
-
-    @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/my/{taskId}/status")
-    public ResponseEntity<StatusDTO> getTask(@PathVariable Integer taskId,
-                                             Authentication authentication) {
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Получить статус моей задачи", description = "Возвращает статус выполнения задачи для студента")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение статуса",
+                    content = @Content(schema = @Schema(implementation = StatusDTO.class)))
+    })
+    public ResponseEntity<StatusDTO> getTask(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskId,
+            Authentication authentication) {
         return ResponseEntity.ok(taskService.findStatusMyTask(taskId, authentication.getName()));
     }
 
-
-    @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/my/{taskId}/status")
-    public ResponseEntity<MyTaskDTO> changeStatusMyTask(@PathVariable Integer taskId,
-                                                        @RequestBody StatusDTO statusDTO,
-                                                        Authentication authentication) {
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Изменить статус моей задачи", description = "Обновляет статус выполнения задачи для студента")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Статус успешно обновлен",
+                    content = @Content(schema = @Schema(implementation = MyTaskDTO.class)))
+    })
+    public ResponseEntity<MyTaskDTO> changeStatusMyTask(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskId,
+            @Parameter(description = "Новый статус", required = true)
+            @RequestBody StatusDTO statusDTO,
+            Authentication authentication) {
         return ResponseEntity.ok(taskService.changeMyTask(taskId, statusDTO.getStatus(), authentication.getName()));
     }
 
-    @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/my/{taskId}/share/{userId}")
-    public ResponseEntity<Void> shareTask(@PathVariable Integer taskId,
-                                          @PathVariable Integer userId,
-                                          Authentication authentication) {
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Поделиться задачей", description = "Позволяет поделиться задачей с другим студентом")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Задача успешно передана"),
+            @ApiResponse(responseCode = "404", description = "Задача или пользователь не найдены")
+    })
+    public ResponseEntity<Void> shareTask(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskId,
+            @Parameter(description = "ID пользователя", required = true)
+            @PathVariable Integer userId,
+            Authentication authentication) {
         taskService.shareTask(taskId, userId, authentication.getName());
         return ResponseEntity.ok().build();
     }
 
-    @PreAuthorize("hasRole('STUDENT') or hasRole('TEACHER')")
     @GetMapping("/getListTask/{taskId}")
-    public ResponseEntity<List<PersonResponseDTO>> getListTask(@PathVariable Integer taskId, Authentication authentication) {
+    @PreAuthorize("hasRole('STUDENT') or hasRole('TEACHER')")
+    @Operation(summary = "Получить пользователей с задачей", description = "Возвращает список пользователей, у которых есть эта задача")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение списка",
+                    content = @Content(schema = @Schema(implementation = PersonResponseDTO.class)))
+    })
+    public ResponseEntity<List<PersonResponseDTO>> getListTask(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskId,
+            Authentication authentication) {
         return ResponseEntity.ok(taskService.getUsersWithTask(taskId, authentication));
     }
 
-    @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{taskId}")
-    public ResponseEntity<TaskDTO> updateTask(@PathVariable Integer taskId, @RequestBody TaskDTO taskDTO, Authentication auth) {
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Обновить задачу", description = "Обновляет информацию о задаче")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Задача успешно обновлена",
+                    content = @Content(schema = @Schema(implementation = TaskDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Задача не найдена")
+    })
+    public ResponseEntity<TaskDTO> updateTask(
+            @Parameter(description = "ID задачи", required = true)
+            @PathVariable Integer taskId,
+            @Parameter(description = "Обновленные данные задачи", required = true)
+            @RequestBody TaskDTO taskDTO,
+            Authentication auth) {
         return ResponseEntity.ok(convertToDTO(taskService.updateTask(taskId, taskDTO, auth.getName())));
     }
-
-
 
     private TaskDTO convertToTaskDTO(Task task) {
         return convertToTaskDTO(task, tagService.getTaskTags(task.getId()));
     }
 
-    private TaskDTO convertToTaskDTO(Task task, List<Tag> tags) {
+    private TaskDTO convertToTaskDTO(Task task, List<ru.danon.spring.ToDo.models.Tag> tags) {
         TaskDTO dto = new TaskDTO();
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
@@ -177,9 +298,7 @@ public class TaskController {
         dto.setDeadline(task.getDeadline());
         dto.setPriority(task.getPriority());
         dto.setAuthorId(task.getAuthor() != null ? task.getAuthor().getId() : null);
-
         dto.setTags(mapTags(tags));
-
         return dto;
     }
 
@@ -187,7 +306,7 @@ public class TaskController {
         return convertToDTO(task, tagService.getTaskTags(task.getId()));
     }
 
-    private TaskDTO convertToDTO(Task task, List<Tag> tags) {
+    private TaskDTO convertToDTO(Task task, List<ru.danon.spring.ToDo.models.Tag> tags) {
         TaskDTO dto = new TaskDTO();
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
@@ -195,17 +314,14 @@ public class TaskController {
         dto.setDeadline(task.getDeadline());
         dto.setPriority(task.getPriority());
         dto.setAuthorId(task.getAuthor() != null ? task.getAuthor().getId() : null);
-
         dto.setTags(mapTags(tags));
-
         return dto;
     }
 
-    private List<TagDTO> mapTags(List<Tag> tags) {
+    private List<TagDTO> mapTags(List<ru.danon.spring.ToDo.models.Tag> tags) {
         if (tags == null || tags.isEmpty()) {
             return Collections.emptyList();
         }
-
         return tags.stream()
                 .filter(Objects::nonNull)
                 .map(tag -> new TagDTO(tag.getId(), tag.getName()))
@@ -215,9 +331,11 @@ public class TaskController {
     private MyTaskDTO convertToMyTaskDTO(Task task) {
         return modelMapper.map(task, MyTaskDTO.class);
     }
+
     private StatusDTO convertToStatusDTO(MyTaskDTO statusMyTask) {
         return modelMapper.map(statusMyTask, StatusDTO.class);
     }
+
     private Task convertToTask(TaskDTO taskDTO) {
         return modelMapper.map(taskDTO, Task.class);
     }

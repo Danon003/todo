@@ -1,5 +1,13 @@
 package ru.danon.spring.ToDo.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -14,12 +22,25 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/reports")
 @RequiredArgsConstructor
+@Tag(name = "Report Controller", description = "Генерация отчетов (DOCX/XLSX)")
+@SecurityRequirement(name = "bearerAuth")
 public class ReportController {
     private final ReportService reportService;
 
     @PostMapping("/generate")
     @PreAuthorize("hasRole('ROLE_TEACHER') or hasRole('ROLE_ADMIN')")
-    public ResponseEntity<byte[]> generateReport(@RequestBody ReportRequestDTO request) {
+    @Operation(summary = "Сгенерировать отчет", description = "Генерирует отчет в формате DOCX или XLSX (доступно для TEACHER и ADMIN)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Отчет успешно сгенерирован",
+                    content = @Content(mediaType = "application/octet-stream",
+                            schema = @Schema(type = "string", format = "binary"))),
+            @ApiResponse(responseCode = "400", description = "Некорректные параметры запроса"),
+            @ApiResponse(responseCode =  "403", description = "Доступ запрещен - требуется роль TEACHER или ADMIN"),
+            @ApiResponse(responseCode = "500", description = "Внутренняя ошибка сервера при генерации отчета")
+    })
+    public ResponseEntity<byte[]> generateReport(
+            @Parameter(description = "Параметры генерации отчета", required = true)
+            @RequestBody ReportRequestDTO request) {
         try {
             byte[] reportBytes = reportService.generateReport(request);
 

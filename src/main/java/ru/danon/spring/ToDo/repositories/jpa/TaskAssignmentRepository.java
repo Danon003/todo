@@ -1,5 +1,7 @@
 package ru.danon.spring.ToDo.repositories.jpa;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -22,6 +24,9 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
     @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
     List<TaskAssignment> findByUser(Person user);
+
+    @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
+    Page<TaskAssignment> findByUser(Person user, Pageable pageable);
 
     @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
     @Query("SELECT ta FROM TaskAssignment ta WHERE ta.user.id = :userId AND ta.task.id = :taskId")

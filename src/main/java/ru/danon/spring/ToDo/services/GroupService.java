@@ -2,6 +2,8 @@ package ru.danon.spring.ToDo.services;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,26 +50,19 @@ public class GroupService {
                 .toList();
     }
 
-    public List<GroupResponseDTO> findAll(Authentication auth) {
+    public Page<GroupResponseDTO> findAll(Authentication auth, Pageable pageable) {
         PersonDetails personDetails = (PersonDetails) auth.getPrincipal();
         Person person = personDetails.getPerson();
 
-        if(isAdmin(person))
-            return groupRepository.findAll().stream()
-                    .map(this::convertToGroupDTO)
-                    .toList();
+        if(isAdmin(person)) {
+            return groupRepository.findAll(pageable)
+                    .map(this::convertToGroupDTO);
+        }
         else if(isTeacher(person))
-            return groupRepository.findByTeacherId(person.getId()).stream()
-                    .map(this::convertToGroupDTO)
-                    .toList();
+            return groupRepository.findByTeacherId(person.getId(), pageable)
+                    .map(this::convertToGroupDTO);
         else
-            return Collections.emptyList();
-    }
-
-    public List<GroupResponseDTO> findAllForAdmin() {
-        return groupRepository.findAll().stream()
-                .map(this::convertToGroupDTO)
-                .toList();
+            return Page.empty(pageable);
     }
 
     public List<Person> getPersonsByGroupId(Integer groupId) {

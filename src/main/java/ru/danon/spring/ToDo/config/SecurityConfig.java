@@ -40,6 +40,19 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login", "/auth/registration",
                                 "/auth/forgot-password", "auth/reset-password").permitAll()
+                        .requestMatchers(
+                                "/auth/login",
+                                "/auth/registration",
+                                "/auth/forgot-password",
+                                "/auth/reset-password",
+                                "/",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs",
+                                "/webjars/**"
+                        ).permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-resources/*", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().hasAnyRole("STUDENT", "TEACHER", "ADMIN")
