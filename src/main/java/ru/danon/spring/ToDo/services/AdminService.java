@@ -1,7 +1,7 @@
 package ru.danon.spring.ToDo.services;
 
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -10,14 +10,24 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.DashboardStatsDTO;
 import ru.danon.spring.ToDo.dto.LogResponseDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
-import ru.danon.spring.ToDo.models.*;
-import ru.danon.spring.ToDo.repositories.jpa.*;
+import ru.danon.spring.ToDo.models.postgre.Group;
+import ru.danon.spring.ToDo.models.postgre.Person;
+import ru.danon.spring.ToDo.models.postgre.RoleAuditLog;
+import ru.danon.spring.ToDo.models.postgre.Task;
+import ru.danon.spring.ToDo.models.postgre.TaskAssignment;
+import ru.danon.spring.ToDo.repositories.jpa.GroupRepository;
+import ru.danon.spring.ToDo.repositories.jpa.RoleAuditLogRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskAssignmentRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AdminService {
 
     private final PeopleService peopleService;
@@ -27,25 +37,8 @@ public class AdminService {
     private final TaskRepository taskRepository;
     private final TaskService taskService;
     private final TaskAssignmentRepository taskAssignmentRepository;
-    private final UserGroupRepository userGroupRepository;
     private final GroupService groupService;
     private final ModelMapper modelMapper;
-
-    @Autowired
-    public AdminService(PeopleService peopleService, GroupRepository groupRepository, NotificationProducerService notificationProducerService, RoleAuditLogRepository roleAuditLogRepository, TaskRepository taskRepository, TaskService taskService, TaskAssignmentRepository taskAssignmentRepository, UserGroupRepository userGroupRepository, GroupService groupService, ModelMapper modelMapper) {
-        this.peopleService = peopleService;
-        this.groupRepository = groupRepository;
-        this.notificationProducerService = notificationProducerService;
-        this.taskRepository = taskRepository;
-        this.taskService = taskService;
-        this.roleAuditLogRepository = roleAuditLogRepository;
-
-
-        this.taskAssignmentRepository = taskAssignmentRepository;
-        this.userGroupRepository = userGroupRepository;
-        this.groupService = groupService;
-        this.modelMapper = modelMapper;
-    }
 
     public Page<Person> getAllUsers(Pageable page) {
         return peopleService.findAll(page);

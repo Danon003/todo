@@ -9,11 +9,18 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.CreateVideoMeetingDTO;
 import ru.danon.spring.ToDo.dto.VideoMeetingDTO;
 import ru.danon.spring.ToDo.services.VideoMeetingService;
@@ -24,17 +31,13 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/video-meetings")
 @Tag(name = "Video Meeting Controller", description = "Управление видеовстречами (Jitsi Meet)")
 @SecurityRequirement(name = "bearerAuth")
 public class VideoMeetingController {
 
     private final VideoMeetingService videoMeetingService;
-
-    @Autowired
-    public VideoMeetingController(VideoMeetingService videoMeetingService) {
-        this.videoMeetingService = videoMeetingService;
-    }
 
     @GetMapping
     @Operation(summary = "Получить все встречи", description = "Возвращает список всех доступных видеовстреч (в зависимости от роли)")

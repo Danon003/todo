@@ -1,5 +1,6 @@
 package ru.danon.spring.ToDo.services;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -12,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.UUID;
 
+@RequiredArgsConstructor
 @Service
 public class NotificationProducerService {
 
@@ -19,10 +21,6 @@ public class NotificationProducerService {
     private static final DateTimeFormatter MEETING_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private final KafkaTemplate<String, NotificationEvent> kafkaTemplate;
-
-    public NotificationProducerService(KafkaTemplate<String, NotificationEvent> kafkaTemplate) {
-        this.kafkaTemplate = kafkaTemplate;
-    }
 
     public void sendNotification(NotificationEvent event) {
         try {

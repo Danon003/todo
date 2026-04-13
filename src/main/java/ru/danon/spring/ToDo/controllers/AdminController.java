@@ -9,8 +9,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -18,9 +18,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-import ru.danon.spring.ToDo.dto.*;
-import ru.danon.spring.ToDo.models.Person;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import ru.danon.spring.ToDo.dto.DashboardStatsDTO;
+import ru.danon.spring.ToDo.dto.IdDTO;
+import ru.danon.spring.ToDo.dto.LogResponseDTO;
+import ru.danon.spring.ToDo.dto.PersonDTO;
+import ru.danon.spring.ToDo.dto.PersonResponseDTO;
+import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.services.AdminService;
 import ru.danon.spring.ToDo.services.PeopleService;
 
@@ -29,6 +41,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/admin")
 @Tag(name = "Admin Controller", description = "Управление пользователями, ролями, группами и статистикой (только для администраторов и преподавателей)")
 @SecurityRequirement(name = "bearerAuth")
@@ -38,14 +51,6 @@ public class AdminController {
     private final PeopleService peopleService;
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
-
-    @Autowired
-    public AdminController(AdminService adminService, PeopleService peopleService, PasswordEncoder passwordEncoder, ModelMapper modelMapper) {
-        this.adminService = adminService;
-        this.peopleService = peopleService;
-        this.passwordEncoder = passwordEncoder;
-        this.modelMapper = modelMapper;
-    }
 
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")

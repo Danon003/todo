@@ -1,23 +1,45 @@
 package ru.danon.spring.ToDo.services;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.xwpf.usermodel.*;
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.ReportRequestDTO;
-import ru.danon.spring.ToDo.models.*;
-import ru.danon.spring.ToDo.repositories.jpa.*;
+import ru.danon.spring.ToDo.models.postgre.Person;
+import ru.danon.spring.ToDo.models.postgre.Task;
+import ru.danon.spring.ToDo.models.postgre.TaskAssignment;
+import ru.danon.spring.ToDo.models.postgre.UserGroup;
+import ru.danon.spring.ToDo.repositories.jpa.GroupRepository;
+import ru.danon.spring.ToDo.repositories.jpa.PeopleRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskAssignmentRepository;
+import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
+import ru.danon.spring.ToDo.repositories.jpa.UserGroupRepository;
 import ru.danon.spring.ToDo.repositories.mongo.CommentRepository;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service

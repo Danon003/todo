@@ -4,7 +4,6 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-// ActivityDTO.java
 @Data
 public class ActivityDTO {
     private Integer id;

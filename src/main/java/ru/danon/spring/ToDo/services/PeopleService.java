@@ -1,29 +1,24 @@
 package ru.danon.spring.ToDo.services;
 
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
-import ru.danon.spring.ToDo.models.Person;
+import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.repositories.jpa.PeopleRepository;
 
 import java.util.List;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @Service
 @Transactional(readOnly = true)
 public class PeopleService {
     private final PeopleRepository peopleRepository;
     private final ModelMapper modelMapper;
-
-    @Autowired
-    public PeopleService(PeopleRepository peopleRepository, ModelMapper modelMapper) {
-        this.peopleRepository = peopleRepository;
-        this.modelMapper = modelMapper;
-    }
 
     public Optional<Person> findByUsername(String username) {
         return peopleRepository.findByUsername(username);

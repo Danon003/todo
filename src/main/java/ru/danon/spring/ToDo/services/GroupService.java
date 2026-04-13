@@ -1,7 +1,7 @@
 package ru.danon.spring.ToDo.services;
 
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -9,10 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.GroupResponseDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
-import ru.danon.spring.ToDo.models.Group;
-import ru.danon.spring.ToDo.models.Person;
-import ru.danon.spring.ToDo.models.UserGroup;
-import ru.danon.spring.ToDo.models.id.UserGroupId;
+import ru.danon.spring.ToDo.models.postgre.Group;
+import ru.danon.spring.ToDo.models.postgre.Person;
+import ru.danon.spring.ToDo.models.postgre.UserGroup;
+import ru.danon.spring.ToDo.models.postgre.id.UserGroupId;
 import ru.danon.spring.ToDo.repositories.jpa.GroupRepository;
 import ru.danon.spring.ToDo.repositories.jpa.UserGroupRepository;
 import ru.danon.spring.ToDo.security.PersonDetails;
@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class GroupService {
 
@@ -33,15 +34,6 @@ public class GroupService {
     private final PeopleService peopleService;
     private final NotificationProducerService notificationProducerService;
     private final ModelMapper modelMapper;
-
-    @Autowired
-    public GroupService(GroupRepository groupRepository, UserGroupRepository userGroupRepository, PeopleService peopleService, NotificationProducerService notificationProducerService, ModelMapper modelMapper) {
-        this.groupRepository = groupRepository;
-        this.userGroupRepository = userGroupRepository;
-        this.peopleService = peopleService;
-        this.notificationProducerService = notificationProducerService;
-        this.modelMapper = modelMapper;
-    }
 
     @Deprecated
     public List<GroupResponseDTO> findAll() {

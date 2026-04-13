@@ -1,10 +1,14 @@
-package ru.danon.spring.ToDo.models.id;
+package ru.danon.spring.ToDo.models.postgre.id;
 
 import jakarta.persistence.Embeddable;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.Objects;
 
+@Getter
+@Setter
 @Embeddable
 public class TaskTagId implements Serializable {
     private Integer taskId;
@@ -29,19 +33,4 @@ public class TaskTagId implements Serializable {
         return Objects.hash(taskId, tagId);
     }
 
-    public Integer getTaskId() {
-        return taskId;
-    }
-
-    public void setTaskId(Integer taskId) {
-        this.taskId = taskId;
-    }
-
-    public Integer getTagId() {
-        return tagId;
-    }
-
-    public void setTagId(Integer tagId) {
-        this.tagId = tagId;
-    }
 }

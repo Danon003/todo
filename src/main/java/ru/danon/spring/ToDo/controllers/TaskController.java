@@ -8,17 +8,31 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-import ru.danon.spring.ToDo.dto.*;
-import ru.danon.spring.ToDo.models.Task;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import ru.danon.spring.ToDo.dto.MyTaskDTO;
+import ru.danon.spring.ToDo.dto.PersonResponseDTO;
+import ru.danon.spring.ToDo.dto.StatusDTO;
+import ru.danon.spring.ToDo.dto.TagDTO;
+import ru.danon.spring.ToDo.dto.TaskDTO;
+import ru.danon.spring.ToDo.dto.TaskResponseDTO;
+import ru.danon.spring.ToDo.dto.TaskStatDTO;
+import ru.danon.spring.ToDo.models.postgre.Task;
 import ru.danon.spring.ToDo.services.TagService;
 import ru.danon.spring.ToDo.services.TaskService;
 
@@ -29,6 +43,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/task")
 @Tag(name = "Task Controller", description = "Управление задачами (создание, назначение, выполнение)")
 @SecurityRequirement(name = "bearerAuth")
@@ -37,13 +52,6 @@ public class TaskController {
     private final TaskService taskService;
     private final TagService tagService;
     private final ModelMapper modelMapper;
-
-    @Autowired
-    public TaskController(TaskService taskService, TagService tagService, ModelMapper modelMapper) {
-        this.taskService = taskService;
-        this.tagService = tagService;
-        this.modelMapper = modelMapper;
-    }
 
     @PostMapping()
     @PreAuthorize("hasRole('TEACHER')")
@@ -91,7 +99,7 @@ public class TaskController {
         List<Integer> taskIds = tasks.getContent().stream()
                 .map(Task::getId)
                 .collect(Collectors.toList());
-        Map<Integer, List<ru.danon.spring.ToDo.models.Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
+        Map<Integer, List<ru.danon.spring.ToDo.models.postgre.Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
 
         return ResponseEntity.ok(tasks
                 .map(task -> convertToDTO(task, tagsByTask.get(task.getId()))));
@@ -235,7 +243,7 @@ public class TaskController {
             @Parameter(description = "Новый статус", required = true)
             @RequestBody StatusDTO statusDTO,
             Authentication authentication) {
-        return ResponseEntity.ok(taskService.changeMyTask(taskId, statusDTO.getStatus(), authentication.getName()));
+        return ResponseEntity.ok(taskService.changeMyTask(taskId, statusDTO.getUserStatus(), authentication.getName()));
     }
 
     @PostMapping("/my/{taskId}/share/{userId}")
@@ -290,7 +298,7 @@ public class TaskController {
         return convertToTaskDTO(task, tagService.getTaskTags(task.getId()));
     }
 
-    private TaskDTO convertToTaskDTO(Task task, List<ru.danon.spring.ToDo.models.Tag> tags) {
+    private TaskDTO convertToTaskDTO(Task task, List<ru.danon.spring.ToDo.models.postgre.Tag> tags) {
         TaskDTO dto = new TaskDTO();
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
@@ -306,7 +314,7 @@ public class TaskController {
         return convertToDTO(task, tagService.getTaskTags(task.getId()));
     }
 
-    private TaskDTO convertToDTO(Task task, List<ru.danon.spring.ToDo.models.Tag> tags) {
+    private TaskDTO convertToDTO(Task task, List<ru.danon.spring.ToDo.models.postgre.Tag> tags) {
         TaskDTO dto = new TaskDTO();
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
@@ -318,7 +326,7 @@ public class TaskController {
         return dto;
     }
 
-    private List<TagDTO> mapTags(List<ru.danon.spring.ToDo.models.Tag> tags) {
+    private List<TagDTO> mapTags(List<ru.danon.spring.ToDo.models.postgre.Tag> tags) {
         if (tags == null || tags.isEmpty()) {
             return Collections.emptyList();
         }

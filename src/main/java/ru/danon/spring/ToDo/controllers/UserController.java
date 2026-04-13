@@ -9,21 +9,27 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.GroupResponseDTO;
 import ru.danon.spring.ToDo.dto.PersonDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
-import ru.danon.spring.ToDo.models.Person;
+import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.services.GroupService;
 import ru.danon.spring.ToDo.services.PeopleService;
 
 import java.util.Map;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/user")
 @Tag(name = "User Controller", description = "Управление профилем пользователя")
 @SecurityRequirement(name = "bearerAuth")
@@ -32,13 +38,6 @@ public class UserController {
     private final PeopleService peopleService;
     private final GroupService groupService;
     private final PasswordEncoder passwordEncoder;
-
-    @Autowired
-    public UserController(PeopleService peopleService, GroupService groupService, PasswordEncoder passwordEncoder) {
-        this.peopleService = peopleService;
-        this.groupService = groupService;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @GetMapping("/me/info")
     @Operation(summary = "Получить информацию о себе", description = "Возвращает информацию о текущем авторизованном пользователе")

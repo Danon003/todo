@@ -8,10 +8,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import ru.danon.spring.ToDo.models.Person;
-import ru.danon.spring.ToDo.models.Task;
-import ru.danon.spring.ToDo.models.TaskAssignment;
-import ru.danon.spring.ToDo.models.id.TaskAssignmentId;
+import ru.danon.spring.ToDo.models.postgre.Person;
+import ru.danon.spring.ToDo.models.postgre.Task;
+import ru.danon.spring.ToDo.models.postgre.TaskAssignment;
+import ru.danon.spring.ToDo.models.postgre.id.TaskAssignmentId;
 
 import java.time.LocalDateTime;
 import java.util.Collection;

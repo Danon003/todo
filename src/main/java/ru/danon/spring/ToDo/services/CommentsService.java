@@ -8,10 +8,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.CommentDTO;
-import ru.danon.spring.ToDo.models.Comment;
-import ru.danon.spring.ToDo.models.Person;
-import ru.danon.spring.ToDo.models.Task;
-import ru.danon.spring.ToDo.models.TaskAssignment;
+import ru.danon.spring.ToDo.models.mongo.Comment;
+import ru.danon.spring.ToDo.models.postgre.Person;
+import ru.danon.spring.ToDo.models.postgre.Task;
+import ru.danon.spring.ToDo.models.postgre.TaskAssignment;
 import ru.danon.spring.ToDo.repositories.jpa.TaskAssignmentRepository;
 import ru.danon.spring.ToDo.repositories.mongo.CommentRepository;
 

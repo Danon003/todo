@@ -1,11 +1,11 @@
 package ru.danon.spring.ToDo.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.danon.spring.ToDo.models.Tag;
-import ru.danon.spring.ToDo.models.Task;
-import ru.danon.spring.ToDo.models.TaskTag;
+import ru.danon.spring.ToDo.models.postgre.Tag;
+import ru.danon.spring.ToDo.models.postgre.Task;
+import ru.danon.spring.ToDo.models.postgre.TaskTag;
 import ru.danon.spring.ToDo.repositories.jpa.TagRepository;
 import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
 import ru.danon.spring.ToDo.repositories.jpa.TaskTagRepository;
@@ -16,18 +16,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 @Service
 public class TagService {
     private final TagRepository tagRepository;
     private final TaskRepository taskRepository;
     private final TaskTagRepository taskTagRepository;
-
-    @Autowired
-    public TagService(TagRepository tagRepository, TaskRepository taskRepository, TaskTagRepository taskTagRepository) {
-        this.tagRepository = tagRepository;
-        this.taskRepository = taskRepository;
-        this.taskTagRepository = taskTagRepository;
-    }
 
     public List<Tag> getAllTags(){
         return tagRepository.findAll();

@@ -1,12 +1,22 @@
-package ru.danon.spring.ToDo.models;
+package ru.danon.spring.ToDo.models.postgre;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.hibernate.validator.constraints.UniqueElements;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "tags")
 public class Tag {
@@ -25,28 +35,4 @@ public class Tag {
     private List<TaskTag> taskTags;
 
     public Tag() {}
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public List<TaskTag> getTaskTags() {
-        return taskTags;
-    }
-
-    public void setTaskTags(List<TaskTag> taskTags) {
-        this.taskTags = taskTags;
-    }
 }

@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
-import ru.danon.spring.ToDo.models.Person;
+import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.services.PeopleService;
 
 

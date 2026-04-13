@@ -8,20 +8,26 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.GroupResponseDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.TaskResponseDTO;
-import ru.danon.spring.ToDo.models.Group;
-import ru.danon.spring.ToDo.models.Person;
+import ru.danon.spring.ToDo.models.postgre.Group;
+import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.services.AdminService;
 import ru.danon.spring.ToDo.services.GroupService;
 import ru.danon.spring.ToDo.services.TaskService;
@@ -31,6 +37,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/group")
 @Tag(name = "Group Controller", description = "Управление группами студентов")
 @SecurityRequirement(name = "bearerAuth")
@@ -40,14 +47,6 @@ public class GroupController {
     private final AdminService adminService;
     private final TaskService taskService;
     private final ModelMapper modelMapper;
-
-    @Autowired
-    public GroupController(GroupService groupService, AdminService adminService, TaskService taskService, ModelMapper modelMapper) {
-        this.groupService = groupService;
-        this.adminService = adminService;
-        this.taskService = taskService;
-        this.modelMapper = modelMapper;
-    }
 
     @GetMapping()
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER') or hasRole('STUDENT')")

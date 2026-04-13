@@ -11,7 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.events.NotificationEvent;
-import ru.danon.spring.ToDo.models.Person;
+import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.repositories.jpa.PeopleRepository;
 
 import java.sql.Timestamp;
@@ -22,8 +22,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Service
 @RequiredArgsConstructor
+@Service
 public class RegistrationService {
     private final PeopleRepository peopleRepository;
     private final NotificationProducerService notificationProducerService;

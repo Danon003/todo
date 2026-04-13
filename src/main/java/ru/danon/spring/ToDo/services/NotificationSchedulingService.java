@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.danon.spring.ToDo.models.ScheduledNotification;
-import ru.danon.spring.ToDo.models.TaskAssignment;
+import ru.danon.spring.ToDo.models.postgre.ScheduledNotification;
+import ru.danon.spring.ToDo.models.postgre.TaskAssignment;
 import ru.danon.spring.ToDo.repositories.jpa.ScheduledNotificationRepository;
 
 import java.time.LocalDateTime;

@@ -1,4 +1,4 @@
-package ru.danon.spring.ToDo.models;
+package ru.danon.spring.ToDo.enums;
 
 public enum TaskStatus {
     NOT_STARTED,

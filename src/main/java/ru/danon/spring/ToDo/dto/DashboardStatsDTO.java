@@ -1,7 +1,7 @@
 package ru.danon.spring.ToDo.dto;
 
 import lombok.Data;
-import ru.danon.spring.ToDo.models.Group;
+import ru.danon.spring.ToDo.models.postgre.Group;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,7 +23,6 @@ public class DashboardStatsDTO {
     private LocalDateTime nextDeadline;
     private List<ActivityDTO> recentActivity;
 
-    // Новые поля для дашборда препода
     private Double avgStudentProgress;          // Средний прогресс студентов %
     private Double avgTasksPerStudent;          // Средняя нагрузка
     private Integer minTasks;                   // Минимальная нагрузка

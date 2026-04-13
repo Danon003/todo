@@ -11,17 +11,37 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import ru.danon.spring.ToDo.dto.*;
+import ru.danon.spring.ToDo.dto.MyTaskDTO;
+import ru.danon.spring.ToDo.dto.PersonResponseDTO;
+import ru.danon.spring.ToDo.dto.SolutionDTO;
+import ru.danon.spring.ToDo.dto.StatusDTO;
+import ru.danon.spring.ToDo.dto.TagDTO;
+import ru.danon.spring.ToDo.dto.TaskDTO;
+import ru.danon.spring.ToDo.dto.TaskResponseDTO;
+import ru.danon.spring.ToDo.dto.TaskStatDTO;
+import ru.danon.spring.ToDo.enums.TaskStatus;
 import ru.danon.spring.ToDo.exceptions.NotSolutionException;
-import ru.danon.spring.ToDo.models.*;
-import ru.danon.spring.ToDo.models.id.TaskAssignmentId;
+import ru.danon.spring.ToDo.models.postgre.Person;
+import ru.danon.spring.ToDo.models.postgre.Tag;
+import ru.danon.spring.ToDo.models.postgre.Task;
+import ru.danon.spring.ToDo.models.postgre.TaskAssignment;
+import ru.danon.spring.ToDo.models.postgre.TaskFile;
+import ru.danon.spring.ToDo.models.postgre.id.TaskAssignmentId;
 import ru.danon.spring.ToDo.repositories.jpa.TaskAssignmentRepository;
 import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
 import ru.danon.spring.ToDo.repositories.jpa.TaskTagRepository;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+
 
 @Service
 @Transactional(readOnly = true)

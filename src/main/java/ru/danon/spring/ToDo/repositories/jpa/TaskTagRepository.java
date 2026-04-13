@@ -7,9 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import ru.danon.spring.ToDo.models.Task;
-import ru.danon.spring.ToDo.models.TaskTag;
-import ru.danon.spring.ToDo.models.id.TaskTagId;
+import ru.danon.spring.ToDo.models.postgre.Task;
+import ru.danon.spring.ToDo.models.postgre.TaskTag;
+import ru.danon.spring.ToDo.models.postgre.id.TaskTagId;
 
 import java.util.Collection;
 import java.util.List;

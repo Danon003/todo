@@ -3,8 +3,7 @@ package ru.danon.spring.ToDo.security;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import ru.danon.spring.ToDo.models.Person;
-
+import ru.danon.spring.ToDo.models.postgre.Person;
 
 import java.util.Collection;
 import java.util.Collections;
