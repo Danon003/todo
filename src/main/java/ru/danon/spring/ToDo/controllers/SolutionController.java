@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -33,9 +34,10 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Solution Controller", description = "Управление решениями задач (загрузка, скачивание, оценка)")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
 public class SolutionController {
 
-    private final TaskService taskService;
+    private final TaskService taskServiceImpl;
 
     @PostMapping
     @Operation(summary = "Загрузить решение", description = "Загружает файл с решением задачи (для студента)")
@@ -50,7 +52,10 @@ public class SolutionController {
             @Parameter(description = "Файл решения", required = true)
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
-        taskService.uploadSolution(taskId, file, authentication.getName());
+        log.info("Запрос на загрузку решения к задаче id={} от пользователя: {}, файл: {}",
+                taskId, authentication.getName(), file.getOriginalFilename());
+        taskServiceImpl.uploadSolution(taskId, file, authentication.getName());
+        log.info("Решение успешно загружено к задаче id={} пользователем {}", taskId, authentication.getName());
         return ResponseEntity.ok().build();
     }
 
@@ -65,12 +70,12 @@ public class SolutionController {
             @Parameter(description = "ID задачи", required = true)
             @PathVariable Integer taskId,
             Authentication authentication) {
-        try {
-            String downloadUrl = taskService.getSolutionDownloadUrl(taskId, authentication.getName());
-            return ResponseEntity.ok(downloadUrl);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+
+        log.info("Запрос на получение ссылки для скачивания решения к задаче id={} от пользователя: {}",
+                taskId, authentication.getName());
+        String downloadUrl = taskServiceImpl.getSolutionDownloadUrl(taskId, authentication.getName());
+        log.debug("Ссылка на скачивание решения получена для задачи id={}", taskId);
+        return ResponseEntity.ok(downloadUrl);
     }
 
     @DeleteMapping
@@ -83,12 +88,11 @@ public class SolutionController {
             @Parameter(description = "ID задачи", required = true)
             @PathVariable Integer taskId,
             Authentication authentication) {
-        try {
-            taskService.deleteSolution(taskId, authentication.getName());
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+
+        log.info("Запрос на удаление решения к задаче id={} от пользователя: {}", taskId, authentication.getName());
+        taskServiceImpl.deleteSolution(taskId, authentication.getName());
+        log.info("Решение к задаче id={} успешно удалено пользователем {}", taskId, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/all")
@@ -103,7 +107,10 @@ public class SolutionController {
             @Parameter(description = "ID задачи", required = true)
             @PathVariable Integer taskId,
             Authentication authentication) {
-        List<SolutionDTO> solutions = taskService.getAllSolutionsForTask(taskId, authentication.getName());
+        log.info("Запрос на получение всех решений к задаче id={} от преподавателя: {}",
+                taskId, authentication.getName());
+        List<SolutionDTO> solutions = taskServiceImpl.getAllSolutionsForTask(taskId, authentication.getName());
+        log.debug("Получено {} решений для задачи id={}", solutions.size(), taskId);
         return ResponseEntity.ok(solutions);
     }
 
@@ -122,13 +129,17 @@ public class SolutionController {
             @Parameter(description = "Данные оценки", required = true)
             @RequestBody GradeRequest gradeRequest,
             Authentication authentication) {
-        taskService.gradeSolution(
+        log.info("Запрос на оценку решения: задача id={}, студент id={}, оценка={}, от преподавателя: {}",
+                taskId, studentId, gradeRequest.getGrade(), authentication.getName());
+        taskServiceImpl.gradeSolution(
                 taskId,
                 studentId,
                 gradeRequest.getGrade(),
                 gradeRequest.getComment(),
                 authentication.getName()
         );
+        log.info("Оценка успешно выставлена: задача id={}, студент id={}, оценка={}",
+                taskId, studentId, gradeRequest.getGrade());
         return ResponseEntity.ok().build();
     }
 
@@ -144,12 +155,12 @@ public class SolutionController {
             @Parameter(description = "ID студента", required = true)
             @PathVariable Integer studentId,
             Authentication authentication) {
-        try {
-            String downloadUrl = taskService.getStudentSolutionDownloadUrl(taskId, studentId, authentication.getName());
-            return ResponseEntity.ok(downloadUrl);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+
+        log.info("Запрос на скачивание решения студента id={} к задаче id={} от преподавателя: {}",
+                studentId, taskId, authentication.getName());
+        String downloadUrl = taskServiceImpl.getStudentSolutionDownloadUrl(taskId, studentId, authentication.getName());
+        log.debug("Ссылка на скачивание решения получена: задача id={}, студент id={}", taskId, studentId);
+        return ResponseEntity.ok(downloadUrl);
     }
 
     @GetMapping
@@ -163,6 +174,10 @@ public class SolutionController {
             @Parameter(description = "ID задачи", required = true)
             @PathVariable Integer taskId,
             Authentication auth) {
-        return ResponseEntity.ok(taskService.getStudentSolution(taskId, auth));
+        log.info("Запрос на получение информации о решении к задаче id={} от пользователя: {}",
+                taskId, auth.getName());
+        SolutionDTO solution = taskServiceImpl.getStudentSolution(taskId, auth);
+        log.debug("Информация о решении получена для задачи id={}", taskId);
+        return ResponseEntity.ok(solution);
     }
 }

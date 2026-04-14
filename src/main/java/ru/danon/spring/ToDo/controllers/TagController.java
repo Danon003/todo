@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,8 +27,9 @@ import java.util.stream.Collectors;
 @RequestMapping("/tag")
 @Tag(name = "Tag Controller", description = "Управление тегами для задач")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
 public class TagController {
-    private final TagService tagService;
+    private final TagService tagServiceImpl;
 
     @GetMapping
     @Operation(summary = "Получить все теги", description = "Возвращает список всех доступных тегов")
@@ -36,10 +38,12 @@ public class TagController {
                     content = @Content(schema = @Schema(implementation = TagDTO.class)))
     })
     public ResponseEntity<List<TagDTO>> getAllTags() {
-        List<ru.danon.spring.ToDo.models.postgre.Tag> tags = tagService.getAllTags();
+        log.info("Запрос на получение всех тегов");
+        List<ru.danon.spring.ToDo.models.postgre.Tag> tags = tagServiceImpl.getAllTags();
         List<TagDTO> tagDTOs = tags.stream()
                 .map(tag -> new TagDTO(tag.getId(), tag.getName()))
                 .collect(Collectors.toList());
+        log.debug("Получено {} тегов", tagDTOs.size());
         return ResponseEntity.ok(tagDTOs);
     }
 
@@ -53,9 +57,11 @@ public class TagController {
     public ResponseEntity<TagDTO> createTag(
             @Parameter(description = "Данные тега", required = true)
             @RequestBody TagDTO tagDTO) {
+        log.info("Запрос на создание нового тега: {}", tagDTO.getName());
         ru.danon.spring.ToDo.models.postgre.Tag tag = new ru.danon.spring.ToDo.models.postgre.Tag();
         tag.setName(tagDTO.getName());
-        tagService.createTag(tag);
+        tagServiceImpl.createTag(tag);
+        log.info("Тег успешно создан: id={}, name={}", tag.getId(), tag.getName());
         return ResponseEntity.ok(new TagDTO(tag.getId(), tag.getName()));
     }
 }

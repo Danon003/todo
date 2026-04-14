@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,8 +28,9 @@ import java.io.IOException;
 @RequiredArgsConstructor
 @Tag(name = "Report Controller", description = "Генерация отчетов (DOCX/XLSX)")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
 public class ReportController {
-    private final ReportService reportService;
+    private final ReportService reportServiceImpl;
 
     @PostMapping("/generate")
     @PreAuthorize("hasRole('ROLE_TEACHER') or hasRole('ROLE_ADMIN')")
@@ -43,38 +45,37 @@ public class ReportController {
     })
     public ResponseEntity<byte[]> generateReport(
             @Parameter(description = "Параметры генерации отчета", required = true)
-            @RequestBody ReportRequestDTO request) {
-        try {
-            byte[] reportBytes = reportService.generateReport(request);
+            @RequestBody ReportRequestDTO request) throws IOException {
 
-            // Определяем тип контента и расширение файла
-            String contentType;
-            String fileExtension;
-            if ("doc".equalsIgnoreCase(request.getFormat())) {
-                contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-                fileExtension = "docx";
-            } else {
-                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                fileExtension = "xlsx";
-            }
+        log.info("Запрос на генерацию отчета: тип={}, формат={}", request.getReportType(), request.getFormat());
 
-            // Генерируем имя файла
-            String reportType = request.getReportType().toLowerCase().replace("_", "-");
-            String timestamp = java.time.LocalDate.now().toString();
-            String filename = String.format("report_%s_%s.%s", reportType, timestamp, fileExtension);
+        byte[] reportBytes = reportServiceImpl.generateReport(request);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.parseMediaType(contentType));
-            headers.setContentDispositionFormData("attachment", filename);
-            headers.setContentLength(reportBytes.length);
-
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(reportBytes);
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+        // Определяем тип контента и расширение файла
+        String contentType;
+        String fileExtension;
+        if ("doc".equalsIgnoreCase(request.getFormat())) {
+            contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            fileExtension = "docx";
+        } else {
+            contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            fileExtension = "xlsx";
         }
+
+        // Генерируем имя файла
+        String reportType = request.getReportType().toLowerCase().replace("_", "-");
+        String timestamp = java.time.LocalDate.now().toString();
+        String filename = String.format("report_%s_%s.%s", reportType, timestamp, fileExtension);
+
+        log.info("Отчет успешно сгенерирован: {}, размер: {} bytes", filename, reportBytes.length);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.setContentDispositionFormData("attachment", filename);
+        headers.setContentLength(reportBytes.length);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(reportBytes);
     }
 }

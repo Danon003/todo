@@ -9,10 +9,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +26,7 @@ import ru.danon.spring.ToDo.dto.ResetPasswordRequest;
 import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.security.JWTUtil;
 import ru.danon.spring.ToDo.services.RegistrationService;
-import ru.danon.spring.ToDo.util.PersonValidator;
+import ru.danon.spring.ToDo.controllers.validators.PersonValidator;
 
 import java.util.Map;
 
@@ -34,9 +34,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/auth")
 @Tag(name = "Authentication Controller", description = "Аутентификация и регистрация пользователей")
+@Slf4j
 public class AuthController {
     private final PersonValidator personValidator;
-    private final RegistrationService registrationService;
+    private final RegistrationService registrationServiceImpl;
     private final JWTUtil jwtUtil;
     private final ModelMapper modelMapper;
     private final AuthenticationManager authenticationManager;
@@ -54,8 +55,11 @@ public class AuthController {
             @RequestBody @Valid PersonDTO personDTO,
             BindingResult bindingResult) {
 
+        log.info("Запрос на регистрацию нового пользователя: {}", personDTO.getUsername());
+
         // Проверяем, что пароль указан при регистрации
         if (personDTO.getPassword() == null || personDTO.getPassword().trim().isEmpty()) {
+            log.warn("Попытка регистрации без пароля для пользователя: {}", personDTO.getUsername());
             return Map.of("message", "Пароль обязателен для регистрации!");
         }
 
@@ -64,11 +68,13 @@ public class AuthController {
         personValidator.validate(person, bindingResult);
 
         if (bindingResult.hasErrors()) {
+            log.warn("Ошибка валидации при регистрации пользователя {}: {}", personDTO.getUsername(), bindingResult.getAllErrors());
             return Map.of("message", "Error!");
         }
 
-        registrationService.register(person);
+        registrationServiceImpl.register(person);
         String token = jwtUtil.generateToken(personDTO.getUsername());
+        log.info("Пользователь {} успешно зарегистрирован", personDTO.getUsername());
 
         return Map.of("jwt-token", token);
     }
@@ -84,14 +90,14 @@ public class AuthController {
     public Map<String, String> performLogin(
             @Parameter(description = "Учетные данные пользователя", required = true)
             @RequestBody AuthenticationDTO authenticationDTO) {
+        log.info("Попытка входа пользователя: {}", authenticationDTO.getUsername());
+
         UsernamePasswordAuthenticationToken authInputToken =
                 new UsernamePasswordAuthenticationToken(authenticationDTO.getUsername(), authenticationDTO.getPassword());
 
-        try {
-            authenticationManager.authenticate(authInputToken);
-        } catch (BadCredentialsException e) {
-            return Map.of("message", "Incorrect credentials!");
-        }
+        authenticationManager.authenticate(authInputToken);
+        log.info("Пользователь {} успешно аутентифицирован", authenticationDTO.getUsername());
+
 
         String token = jwtUtil.generateToken(authenticationDTO.getUsername());
         return Map.of("jwt-token", token);
@@ -106,12 +112,11 @@ public class AuthController {
     public ResponseEntity<?> performForgotPassword(
             @Parameter(description = "Email пользователя для восстановления пароля", required = true)
             @RequestBody ForgotPasswordRequest request) {
-        try {
-            registrationService.initiatePasswordReset(request.getEmail());
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Ошибка отправки кода");
-        }
+
+        log.info("Запрос на восстановление пароля для email: {}", request.getEmail());
+        registrationServiceImpl.initiatePasswordReset(request.getEmail());
+        log.info("Код восстановления отправлен на email: {}", request.getEmail());
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/reset-password")
@@ -123,12 +128,11 @@ public class AuthController {
     public ResponseEntity<?> performResetPassword(
             @Parameter(description = "Данные для сброса пароля", required = true)
             @RequestBody ResetPasswordRequest request) {
-        try {
-            registrationService.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Ошибка сброса пароля");
-        }
+
+        log.info("Запрос на сброс пароля для email: {}", request.getEmail());
+        registrationServiceImpl.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
+        log.info("Пароль успешно сброшен для email: {}", request.getEmail());
+        return ResponseEntity.ok().build();
     }
 
     public Person convertToPerson(PersonDTO personDTO) {

@@ -1,100 +1,37 @@
 package ru.danon.spring.ToDo.services;
 
-import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.models.postgre.Person;
-import ru.danon.spring.ToDo.repositories.jpa.PeopleRepository;
 
 import java.util.List;
 import java.util.Optional;
 
-@RequiredArgsConstructor
-@Service
-@Transactional(readOnly = true)
-public class PeopleService {
-    private final PeopleRepository peopleRepository;
-    private final ModelMapper modelMapper;
+public interface PeopleService {
+    Optional<Person> findByUsername(String username);
 
-    public Optional<Person> findByUsername(String username) {
-        return peopleRepository.findByUsername(username);
-    }
+    Page<Person> findAll(Pageable page);
 
-    public Page<Person> findAll(Pageable page) {
-        return peopleRepository.findAll(page);
-    }
-    public List<Person> findAll() {
-        return peopleRepository.findAll();
-    }
+    List<Person> findAll();
 
-    public Optional<Person> findByEmail(String email) {
-        return peopleRepository.findByEmail(email);
-    }
+    Optional<Person> findByEmail(String email);
 
-    public Optional<Person> findById(Integer userId) {
-        return peopleRepository.findById(userId);
-    }
+    Optional<Person> findById(Integer userId);
 
     @Transactional
-    public void deleteById(Integer userId) {
-        peopleRepository.deleteById(userId);
-    }
+    void deleteById(Integer userId);
 
     @Transactional
-    public Person save(Person person) {
-        return peopleRepository.save(person);
-    }
+    Person save(Person person);
 
-    public List<Person> findByRole(String role) {
-        return peopleRepository.findByRole(role);
-    }
-    public Page<Person> findByRole(String role, Pageable page) {
-        return peopleRepository.findByRole(role, page);
-    }
+    List<Person> findByRole(String role);
 
-    public PersonResponseDTO getUserInfo(String name) {
-        return convertToPersonResponseDTO(peopleRepository.findByUsername(name));
-    }
+    Page<Person> findByRole(String role, Pageable page);
+
+    PersonResponseDTO getUserInfo(String name);
 
     @Transactional
-    public PersonResponseDTO updateUserProfile(String username, String newUsername, String newEmail, String newPassword) {
-        Person person = peopleRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
-        // Проверяем, не занят ли новый email другим пользователем
-        if (!person.getEmail().equals(newEmail)) {
-            Optional<Person> existingPerson = peopleRepository.findByEmail(newEmail);
-            if (existingPerson.isPresent() && !existingPerson.get().getId().equals(person.getId())) {
-                throw new RuntimeException("Email уже используется другим пользователем");
-            }
-        }
-
-        // Проверяем, не занят ли новый username другим пользователем
-        if (!person.getUsername().equals(newUsername)) {
-            Optional<Person> existingPerson = peopleRepository.findByUsername(newUsername);
-            if (existingPerson.isPresent() && !existingPerson.get().getId().equals(person.getId())) {
-                throw new RuntimeException("Имя пользователя уже занято");
-            }
-        }
-
-        // Обновляем данные
-        person.setUsername(newUsername);
-        person.setEmail(newEmail);
-
-        // Обновляем пароль только если он указан и не пустой
-        if (newPassword != null && !newPassword.trim().isEmpty()) {
-            person.setPassword(newPassword);
-        }
-
-        Person updatedPerson = peopleRepository.save(person);
-        return convertToPersonResponseDTO(Optional.of(updatedPerson));
-    }
-
-    private PersonResponseDTO convertToPersonResponseDTO(Optional<Person> byUsername) {
-        return modelMapper.map(byUsername.orElse(null), PersonResponseDTO.class);
-    }
+    PersonResponseDTO updateUserProfile(String username, String newUsername, String newEmail, String newPassword);
 }

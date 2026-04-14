@@ -1,4 +1,4 @@
-package ru.danon.spring.ToDo.events;
+package ru.danon.spring.ToDo.dto;
 
 import lombok.Data;
 

@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -31,6 +32,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Task File Controller", description = "Управление файлами, прикрепленными к задачам")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
 public class TaskFileController {
 
     private final TaskFileService taskFileService;
@@ -50,7 +52,11 @@ public class TaskFileController {
             @Parameter(description = "Файл для загрузки", required = true)
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
+        log.info("Запрос на загрузку файла к задаче id={} от пользователя: {}, файл: {}",
+                taskId, authentication.getName(), file.getOriginalFilename());
         TaskFileDTO taskFile = convertToTaskFileDTO(taskFileService.uploadTaskFile(taskId, file, authentication));
+        log.info("Файл {} успешно загружен к задаче id={}, fileId={}",
+                file.getOriginalFilename(), taskId, taskFile.getId());
         return ResponseEntity.ok(taskFile);
     }
 
@@ -63,10 +69,13 @@ public class TaskFileController {
     public ResponseEntity<List<TaskFileDTO>> getTaskFiles(
             @Parameter(description = "ID задачи", required = true)
             @PathVariable Integer taskId) {
-        return ResponseEntity.ok(taskFileService.getTaskFiles(taskId)
+        log.info("Запрос на получение файлов задачи id={}", taskId);
+        List<TaskFileDTO> files = taskFileService.getTaskFiles(taskId)
                 .stream()
                 .map(this::convertToTaskFileDTO)
-                .toList());
+                .toList();
+        log.debug("Получено {} файлов для задачи id={}", files.size(), taskId);
+        return ResponseEntity.ok(files);
     }
 
     @DeleteMapping("/{fileId}")
@@ -80,7 +89,9 @@ public class TaskFileController {
             @PathVariable Integer taskId,
             @Parameter(description = "ID файла", required = true)
             @PathVariable Integer fileId) {
+        log.info("Запрос на удаление файла id={} из задачи id={}", fileId, taskId);
         taskFileService.deleteTaskFile(fileId);
+        log.info("Файл id={} успешно удален из задачи id={}", fileId, taskId);
         return ResponseEntity.noContent().build();
     }
 
@@ -96,7 +107,9 @@ public class TaskFileController {
             @PathVariable Integer fileId,
             @Parameter(description = "ID задачи", required = true)
             @PathVariable Integer taskId) {
+        log.info("Запрос на получение ссылки для скачивания файла id={} из задачи id={}", fileId, taskId);
         String downloadUrl = taskFileService.getFileDownloadUrl(fileId);
+        log.debug("Ссылка на скачивание файла id={} успешно сгенерирована", fileId);
         return ResponseEntity.ok(downloadUrl);
     }
 

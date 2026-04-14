@@ -1,0 +1,318 @@
+package ru.danon.spring.ToDo.services.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import ru.danon.spring.ToDo.dto.NotificationEvent;
+import ru.danon.spring.ToDo.services.NotificationProducerService;
+
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.UUID;
+
+@RequiredArgsConstructor
+@Service
+@Slf4j
+public class NotificationProducerServiceImpl implements NotificationProducerService {
+
+    private static final DateTimeFormatter MEETING_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private final KafkaTemplate<String, NotificationEvent> kafkaTemplate;
+
+    @Override public void sendNotification(NotificationEvent event) {
+        try {
+            kafkaTemplate.send("notifications-topic", event.getUserId().toString(), event)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            log.info("Уведомление успешно отправлено в Kafka: id={}, userId={}, type={}",
+                                    event.getId(), event.getUserId(), event.getType());
+                        } else {
+                            log.error("Ошибка отправки уведомления в Kafka: id={}, userId={}",
+                                    event.getId(), event.getUserId(), ex);
+                        }
+                    });
+        } catch (Exception e) {
+            log.error("Ошибка при отправке уведомления в Kafka: {}", e.getMessage());
+        }
+    }
+
+    // Вспомогательные методы для создания событий
+    @Override public void sendTaskAssignedNotification(Integer userId, String userRole, String taskTitle, Integer taskId) {
+        log.debug("Создание уведомления о назначении задачи: userId={}, taskId={}, title={}", userId, taskId, taskTitle);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("TASK");
+        event.setTitle("Новая задача");
+        event.setMessage("Вам назначена задача: " + taskTitle);
+        event.setUserId(userId);
+        event.setUserRole(userRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of("taskId", taskId));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendGroupAddedNotification(Integer userId, String userRole, String groupName, Integer groupId) {
+        log.debug("Создание уведомления о добавлении в группу: userId={}, groupId={}, name={}", userId, groupId, groupName);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("GROUP");
+        event.setTitle("Добавление в группу");
+        event.setMessage("Вас добавили в группу: " + groupName);
+        event.setUserId(userId);
+        event.setUserRole(userRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of("groupId", groupId));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendGroupRemovedNotification(Integer userId, String userRole, String groupName, Integer groupId) {
+        log.debug("Создание уведомления об удалении из группы: userId={}, groupId={}, name={}", userId, groupId, groupName);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("GROUP");
+        event.setTitle("Удаление из группы");
+        event.setMessage("Вас удалили из группы: " + groupName);
+        event.setUserId(userId);
+        event.setUserRole(userRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of("groupId", groupId));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendTaskOverdueNotification(Integer userId, String userRole, String taskTitle, Integer taskId) {
+        log.debug("Создание уведомления о просроченной задаче: userId={}, taskId={}, title={}", userId, taskId, taskTitle);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("TASK_OVERDUE");
+        event.setTitle("Задача просрочена");
+        event.setMessage("Задача \"" + taskTitle + "\" просрочена!");
+        event.setUserId(userId);
+        event.setUserRole(userRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of("taskId", taskId));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendTaskDeadlineApproachingNotification(
+            Integer userId,
+            String userRole,
+            String taskTitle,
+            Integer taskId,
+            String timeLabel,
+            String eventType
+    ) {
+        log.debug("Создание уведомления о приближении дедлайна: userId={}, taskId={}, label={}", userId, taskId, timeLabel);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType(eventType);
+        event.setTitle("Скоро дедлайн!");
+        event.setMessage("По задаче \"" + taskTitle + "\" дедлайн истекает " + timeLabel + "!");
+        event.setUserId(userId);
+        event.setUserRole(userRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "taskId", taskId,
+                "deadlineIn", timeLabel
+        ));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendChangeRoleNotification(Integer userId, String newRole) {
+        log.debug("Создание уведомления о смене роли: userId={}, newRole={}", userId, newRole);
+
+        NotificationEvent event = new NotificationEvent();
+
+        event.setId(UUID.randomUUID().toString());
+        event.setType("CHANGE_ROLE");
+        event.setTitle("У вас новая роль!");
+        event.setMessage("Теперь у вас доступ с правами: " + newRole.replace("ROLE_", ""));
+        event.setUserId(userId);
+        event.setUserRole(newRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of("role", newRole));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendTeacherRemovedNotification(Integer id, String groupName) {
+        log.debug("Создание уведомления о снятии с должности преподавателя: userId={}, groupName={}", id, groupName);
+
+        NotificationEvent event = new NotificationEvent();
+
+        event.setId(UUID.randomUUID().toString());
+        event.setType("TEACHER_REMOVED");
+        event.setTitle("Вас сняли с должности преподавателя");
+        event.setMessage("Вы больше не отвечаете за " + groupName);
+        event.setUserId(id);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendTeacherAssignNotification(Integer id, String name) {
+        log.debug("Создание уведомления о назначении преподавателем: userId={}, groupName={}", id, name);
+
+        NotificationEvent event = new NotificationEvent();
+
+        event.setId(UUID.randomUUID().toString());
+        event.setType("TEACHER_ASSIGN");
+        event.setTitle("Назначен преподаватель");
+        event.setMessage("Вы ответственны за " + name);
+        event.setUserId(id);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendSolutionUploadedNotification(Integer teacherUserId, String teacherRole,
+                                                 String studentName, String taskTitle, Integer taskId) {
+        log.debug("Создание уведомления о загрузке решения: teacherId={}, student={}, taskId={}",
+                teacherUserId, studentName, taskId);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("SOLUTION_UPLOADED");
+        event.setTitle("Новое решение задачи");
+        event.setMessage("Студент " + studentName + " загрузил решение по задаче: " + taskTitle);
+        event.setUserId(teacherUserId);
+        event.setUserRole(teacherRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "taskId", taskId,
+                "studentName", studentName,
+                "taskTitle", taskTitle
+        ));
+
+        sendNotification(event);
+    }
+
+    /**
+     * Уведомление об оценке решения преподавателем
+     */
+    @Override public void sendSolutionGradedNotification(Integer studentUserId, String studentRole,
+                                               String teacherName, String taskTitle, Integer grade,
+                                               String comment, Integer taskId) {
+        log.debug("Создание уведомления об оценке решения: studentId={}, teacher={}, taskId={}, grade={}",
+                studentUserId, teacherName, taskId, grade);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("SOLUTION_GRADED");
+        event.setTitle("Оценка вашего решения");
+        event.setMessage("Преподаватель " + teacherName + " оценил ваше решение по задаче: " + taskTitle);
+        event.setUserId(studentUserId);
+        event.setUserRole(studentRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "taskId", taskId,
+                "teacherName", teacherName,
+                "taskTitle", taskTitle,
+                "grade", grade,
+                "comment", comment
+        ));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendCommentNotification(Integer studentUserId, String username,
+                                        String taskTitle, Integer taskId) {
+        log.debug("Создание уведомления о комментарии: userId={}, author={}, taskId={}", studentUserId, username, taskId);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("New_Comment");
+        event.setTitle("Новый комментарий");
+        event.setMessage("Пользователь " + username + " оставил комментарий к задаче: " + taskTitle);
+        event.setUserId(studentUserId);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "taskId", taskId,
+                "taskTitle", taskTitle
+        ));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendVideoMeetingCreatedNotification(Integer userId,
+                                                    String userRole,
+                                                    String meetingTitle,
+                                                    LocalDateTime startTime,
+                                                    Integer meetingId,
+                                                    String groupName) {
+        log.debug("Создание уведомления о видеовстрече: userId={}, meetingId={}, title={}", userId, meetingId, meetingTitle);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("VIDEO_MEETING_CREATED");
+        event.setTitle("Новая видеовстреча");
+        event.setMessage(buildMeetingCreationMessage(meetingTitle, startTime, groupName));
+        event.setUserId(userId);
+        event.setUserRole(userRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "meetingId", meetingId,
+                "meetingTitle", meetingTitle,
+                "startTime", startTime != null ? startTime.toString() : null,
+                "groupName", groupName
+        ));
+
+        sendNotification(event);
+    }
+
+    @Override public void sendVideoMeetingReminderNotification(Integer userId,
+                                                     String userRole,
+                                                     String meetingTitle,
+                                                     LocalDateTime startTime,
+                                                     Integer meetingId,
+                                                     String meetingUrl) {
+        log.debug("Создание напоминания о видеовстрече: userId={}, meetingId={}, title={}", userId, meetingId, meetingTitle);
+
+        NotificationEvent event = new NotificationEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setType("VIDEO_MEETING_REMINDER");
+        event.setTitle("Скоро видеовстреча");
+        event.setMessage(buildMeetingReminderMessage(meetingTitle));
+        event.setUserId(userId);
+        event.setUserRole(userRole);
+        event.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        event.setMetadata(Map.of(
+                "meetingId", meetingId,
+                "meetingTitle", meetingTitle,
+                "startTime", startTime != null ? startTime.toString() : null,
+                "meetingUrl", meetingUrl
+        ));
+
+        sendNotification(event);
+    }
+
+    private String buildMeetingCreationMessage(String title, LocalDateTime startTime, String groupName) {
+        StringBuilder builder = new StringBuilder("Назначена видеовстреча ");
+        builder.append("\"").append(title).append("\"");
+        if (startTime != null) {
+            builder.append(" на ").append(startTime.format(MEETING_TIME_FORMATTER));
+        }
+        if (groupName != null) {
+            builder.append(" для  ").append(groupName);
+        } else {
+            builder.append(" для всех студентов");
+        }
+        return builder.append(".").toString();
+    }
+
+    private String buildMeetingReminderMessage(String title) {
+        return "Через 10 минут начнется видеовстреча \"" + title + "\".";
+    }
+}

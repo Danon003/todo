@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,6 +46,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/admin")
 @Tag(name = "Admin Controller", description = "Управление пользователями, ролями, группами и статистикой (только для администраторов и преподавателей)")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
 public class AdminController {
 
     private final AdminService adminService;
@@ -64,7 +66,9 @@ public class AdminController {
             @Parameter(description = "Параметры пагинации (size, page, sort)")
             @PageableDefault(size = 15) Pageable page
     ) {
+        log.info("Запрос на получение списка всех пользователей с пагинацией: page={}, size={}", page.getPageNumber(), page.getPageSize());
         Page<Person> usersPage = adminService.getAllUsers(page);
+        log.debug("Получено {} пользователей из {} всего", usersPage.getNumberOfElements(), usersPage.getTotalElements());
         return usersPage.map(person -> modelMapper.map(person, PersonResponseDTO.class));
     }
 
@@ -79,7 +83,9 @@ public class AdminController {
             @ApiResponse(responseCode = "403", description = "Доступ запрещен - требуется роль ADMIN")
     })
     public ResponseEntity<?> createUser(@Valid @RequestBody PersonDTO personDTO) {
+        log.info("Запрос на создание нового пользователя с email: {}", personDTO.getEmail());
         if (peopleService.findByEmail(personDTO.getEmail()).isPresent()) {
+            log.warn("Попытка создания пользователя с уже существующим email: {}", personDTO.getEmail());
             return ResponseEntity.badRequest().body("Email already in use");
         }
 
@@ -89,6 +95,7 @@ public class AdminController {
         person.setCreatedAt(LocalDateTime.now());
 
         Person savedPerson = peopleService.save(person);
+        log.info("Пользователь успешно создан: id={}, email={}", savedPerson.getId(), savedPerson.getEmail());
         return ResponseEntity.ok(savedPerson);
     }
 
@@ -102,7 +109,9 @@ public class AdminController {
     })
     public ResponseEntity<Void> deleteUser(@Parameter(description = "ID пользователя", required = true)
                                            @PathVariable Integer userId) {
+        log.info("Запрос на удаление пользователя с id: {}", userId);
         peopleService.deleteById(userId);
+        log.info("Пользователь с id {} успешно удален", userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -120,7 +129,9 @@ public class AdminController {
             @Parameter(description = "ID пользователя", required = true)
             @PathVariable Integer userId) {
 
+        log.info("Запрос на изменение роли пользователя id={} на {}", userId, role);
         adminService.changeUserRole(userId, role.toUpperCase());
+        log.info("Роль пользователя id={} успешно изменена на {}", userId, role);
         return ResponseEntity.ok().build();
     }
 
@@ -134,7 +145,10 @@ public class AdminController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
     public ResponseEntity<Person> createTeachers(@RequestBody IdDTO id) {
-        return ResponseEntity.ok(adminService.createTeacher(id.getId()));
+        log.info("Запрос на назначение пользователя id={} преподавателем", id.getId());
+        Person teacher = adminService.createTeacher(id.getId());
+        log.info("Пользователь id={} успешно назначен преподавателем", id.getId());
+        return ResponseEntity.ok(teacher);
     }
 
     @GetMapping("/users/by-role")
@@ -150,7 +164,9 @@ public class AdminController {
             @PageableDefault(size = 15) Pageable page,
             @Parameter(description = "Роль пользователя", required = true, example = "STUDENT")
             @RequestParam String role) {
+        log.info("Запрос на получение пользователей с ролью: {}, page={}, size={}", role, page.getPageNumber(), page.getPageSize());
         Page<Person> usersPage = adminService.getUsersByRole(role, page);
+        log.debug("Найдено {} пользователей с ролью {} из {} всего", usersPage.getNumberOfElements(), role, usersPage.getTotalElements());
         return ResponseEntity.ok(usersPage.map(person -> modelMapper.map(person, PersonResponseDTO.class)));
     }
 
@@ -163,7 +179,10 @@ public class AdminController {
             @ApiResponse(responseCode = "403", description = "Доступ запрещен - требуется роль ADMIN")
     })
     public ResponseEntity<List<LogResponseDTO>> getRoleAuditLog() {
-        return ResponseEntity.ok(adminService.getRoleAuditLogs());
+        log.info("Запрос на получение истории изменений ролей");
+        List<LogResponseDTO> auditLogs = adminService.getRoleAuditLogs();
+        log.debug("Получено {} записей аудита ролей", auditLogs.size());
+        return ResponseEntity.ok(auditLogs);
     }
 
     @GetMapping("/statistic")
@@ -174,7 +193,10 @@ public class AdminController {
             @ApiResponse(responseCode = "403", description = "Доступ запрещен")
     })
     public ResponseEntity<DashboardStatsDTO> getStatistic(Authentication auth) {
-        return ResponseEntity.ok(adminService.getDashboardStats(auth));
+        log.info("Запрос на получение статистики дашборда от пользователя: {}", auth.getName());
+        DashboardStatsDTO stats = adminService.getDashboardStats(auth);
+        log.debug("Статистика дашборда успешно сформирована для пользователя: {}", auth.getName());
+        return ResponseEntity.ok(stats);
     }
 
     @PutMapping("/{groupId}/teacher/{teacherId}")
@@ -191,7 +213,9 @@ public class AdminController {
             @Parameter(description = "ID преподавателя", required = true)
             @PathVariable Integer teacherId) {
 
+        log.info("Запрос на назначение преподавателя id={} группе id={}", teacherId, groupId);
         adminService.assignTeacherToGroup(groupId, teacherId);
+        log.info("Преподаватель id={} успешно назначен группе id={}", teacherId, groupId);
         return ResponseEntity.noContent().build();
     }
 

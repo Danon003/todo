@@ -1,111 +1,31 @@
 package ru.danon.spring.ToDo.services;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.danon.spring.ToDo.models.postgre.Tag;
 import ru.danon.spring.ToDo.models.postgre.Task;
-import ru.danon.spring.ToDo.models.postgre.TaskTag;
-import ru.danon.spring.ToDo.repositories.jpa.TagRepository;
-import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
-import ru.danon.spring.ToDo.repositories.jpa.TaskTagRepository;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
-@Service
-public class TagService {
-    private final TagRepository tagRepository;
-    private final TaskRepository taskRepository;
-    private final TaskTagRepository taskTagRepository;
-
-    public List<Tag> getAllTags(){
-        return tagRepository.findAll();
-    }
+public interface TagService {
+    List<Tag> getAllTags();
 
     @Transactional
-    public void createTag(Tag tag) {
-        if (tagRepository.findByName(tag.getName()).isPresent()) {
-            throw new RuntimeException("Тег уже существует: " + tag);
-        }
-
-        Tag newTag = new Tag();
-        newTag.setName(tag.getName());
-        tagRepository.save(newTag);
-    }
+    void createTag(Tag tag);
 
     @Transactional
-    public void addTagToTask(Integer taskId, Integer tagId) {
-        if (taskTagRepository.existsByTaskIdAndTagId(taskId, tagId)) {
-            return;
-        }
-        TaskTag taskTag = new TaskTag();
-        taskTag.setTaskId(taskId);
-        taskTag.setTagId(tagId);
-
-        taskTagRepository.save(taskTag);
-    }
+    void addTagToTask(Integer taskId, Integer tagId);
 
     @Transactional
-    public void addTagToTaskByName(Integer taskId, String name) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Задача с ID " + taskId + " не найдена"));
-
-        // Проверяем, существует ли тег
-        Tag tag = tagRepository.findByName(name)
-                .orElseGet(() -> {
-                    Tag newTag = new Tag();
-                    newTag.setName(name);
-                    return tagRepository.save(newTag);
-                });
-
-        // Проверяем, не добавлен ли уже этот тег к задаче
-        if (taskTagRepository.existsByTaskIdAndTagId(taskId, tag.getId())) {
-            return;
-        }
-
-        TaskTag taskTag = new TaskTag();
-        taskTag.setTaskId(taskId);
-        taskTag.setTagId(tag.getId());
-
-        taskTagRepository.save(taskTag);
-    }
+    void addTagToTaskByName(Integer taskId, String name);
 
     @Transactional
-    public void removeTagFromTask(Integer taskId, Integer tagId) {
-        taskTagRepository.deleteByTaskIdAndTagId(tagId, taskId);
-    }
+    void removeTagFromTask(Integer taskId, Integer tagId);
 
-    public List<Tag> getTaskTags(Integer taskId) {
-        try {
-            return taskTagRepository.findTaskTagsWithTagsByTaskId(taskId)
-                    .stream()
-                    .map(TaskTag::getTag)
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            return Collections.emptyList();
-        }
-    }
+    List<Tag> getTaskTags(Integer taskId);
 
-    public Map<Integer, List<Tag>> getTaskTagsBatch(Collection<Integer> taskIds) {
-        if (taskIds == null || taskIds.isEmpty()) {
-            return Collections.emptyMap();
-        }
+    Map<Integer, List<Tag>> getTaskTagsBatch(Collection<Integer> taskIds);
 
-        return taskTagRepository.findTaskTagsWithTagsByTaskIds(taskIds).stream()
-                .filter(taskTag -> taskTag.getTaskId() != null && taskTag.getTag() != null)
-                .collect(Collectors.groupingBy(
-                        TaskTag::getTaskId,
-                        Collectors.mapping(TaskTag::getTag, Collectors.toList())
-                ));
-    }
-
-    public List<Task> getTaskByTag(String tagName) {
-        return taskTagRepository.findTasksByTag_Name(tagName);
-    }
-
+    List<Task> getTaskByTag(String tagName);
 }

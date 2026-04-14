@@ -1,11 +1,11 @@
 package ru.danon.spring.ToDo.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -17,19 +17,28 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import ru.danon.spring.ToDo.security.JWTFilter;
 
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
+@EnableMethodSecurity()
 public class SecurityConfig {
 
     private final JWTFilter jwtFilter;
-    @Autowired
-    public SecurityConfig(final JWTFilter jwtFilter) {
-        this.jwtFilter = jwtFilter;
-    }
+
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/auth/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**",
+            "/v3/api-docs/**",
+            "/webjars/**",
+            "/",
+            "/error"
+    };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -38,24 +47,8 @@ public class SecurityConfig {
                 .cors(cors -> cors
                         .configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/registration",
-                                "/auth/forgot-password", "auth/reset-password").permitAll()
-                        .requestMatchers(
-                                "/auth/login",
-                                "/auth/registration",
-                                "/auth/forgot-password",
-                                "/auth/reset-password",
-                                "/",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/swagger-resources/**",
-                                "/v3/api-docs/**",
-                                "/v3/api-docs",
-                                "/webjars/**"
-                        ).permitAll()
-                        .requestMatchers("/swagger-ui/**", "/swagger-resources/*", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
-                        .anyRequest().hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
                         session
