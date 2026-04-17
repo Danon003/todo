@@ -30,7 +30,7 @@ import java.io.IOException;
 @SecurityRequirement(name = "bearerAuth")
 @Slf4j
 public class ReportController {
-    private final ReportService reportServiceImpl;
+    private final ReportService reportService;
 
     @PostMapping("/generate")
     @PreAuthorize("hasRole('ROLE_TEACHER') or hasRole('ROLE_ADMIN')")
@@ -49,7 +49,7 @@ public class ReportController {
 
         log.info("Запрос на генерацию отчета: тип={}, формат={}", request.getReportType(), request.getFormat());
 
-        byte[] reportBytes = reportServiceImpl.generateReport(request);
+        byte[] reportBytes = reportService.generateReport(request);
 
         // Определяем тип контента и расширение файла
         String contentType;

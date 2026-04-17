@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import ru.danon.spring.ToDo.dto.TaskFileDTO;
+import ru.danon.spring.ToDo.mappers.TaskFileMapper;
 import ru.danon.spring.ToDo.models.postgre.TaskFile;
 import ru.danon.spring.ToDo.services.TaskFileService;
 
@@ -36,7 +37,7 @@ import java.util.List;
 public class TaskFileController {
 
     private final TaskFileService taskFileService;
-    private final ModelMapper modelMapper;
+    private final TaskFileMapper taskFileMapper;
 
     @PostMapping
     @Operation(summary = "Загрузить файл к задаче", description = "Прикрепляет файл к задаче")
@@ -54,7 +55,7 @@ public class TaskFileController {
             Authentication authentication) {
         log.info("Запрос на загрузку файла к задаче id={} от пользователя: {}, файл: {}",
                 taskId, authentication.getName(), file.getOriginalFilename());
-        TaskFileDTO taskFile = convertToTaskFileDTO(taskFileService.uploadTaskFile(taskId, file, authentication));
+        TaskFileDTO taskFile = taskFileMapper.toDTO(taskFileService.uploadTaskFile(taskId, file, authentication));
         log.info("Файл {} успешно загружен к задаче id={}, fileId={}",
                 file.getOriginalFilename(), taskId, taskFile.getId());
         return ResponseEntity.ok(taskFile);
@@ -72,7 +73,7 @@ public class TaskFileController {
         log.info("Запрос на получение файлов задачи id={}", taskId);
         List<TaskFileDTO> files = taskFileService.getTaskFiles(taskId)
                 .stream()
-                .map(this::convertToTaskFileDTO)
+                .map(taskFileMapper::toDTO)
                 .toList();
         log.debug("Получено {} файлов для задачи id={}", files.size(), taskId);
         return ResponseEntity.ok(files);
@@ -111,9 +112,5 @@ public class TaskFileController {
         String downloadUrl = taskFileService.getFileDownloadUrl(fileId);
         log.debug("Ссылка на скачивание файла id={} успешно сгенерирована", fileId);
         return ResponseEntity.ok(downloadUrl);
-    }
-
-    private TaskFileDTO convertToTaskFileDTO(TaskFile taskFile) {
-        return modelMapper.map(taskFile, TaskFileDTO.class);
     }
 }

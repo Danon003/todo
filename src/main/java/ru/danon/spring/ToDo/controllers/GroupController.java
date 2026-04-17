@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -27,15 +26,13 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.GroupResponseDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.TaskResponseDTO;
-import ru.danon.spring.ToDo.models.postgre.Group;
-import ru.danon.spring.ToDo.models.postgre.Person;
+import ru.danon.spring.ToDo.mappers.GroupMapper;
 import ru.danon.spring.ToDo.services.AdminService;
 import ru.danon.spring.ToDo.services.GroupService;
 import ru.danon.spring.ToDo.services.TaskService;
 
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,10 +42,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GroupController {
 
-    private final GroupService groupServiceImpl;
+    private final GroupService groupService;
     private final AdminService adminService;
-    private final TaskService taskServiceImpl;
-    private final ModelMapper modelMapper;
+    private final TaskService taskService;
+    private final GroupMapper groupMapper;
 
     @GetMapping()
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER') or hasRole('STUDENT')")
@@ -62,7 +59,7 @@ public class GroupController {
             @PageableDefault(size = 10) Pageable pageable,
             Authentication auth) {
         log.info("Запрос на получение всех групп от пользователя: {}, page={}, size={}", auth.getName(), pageable.getPageNumber(), pageable.getPageSize());
-        Page<GroupResponseDTO> groups = groupServiceImpl.findAll(auth, pageable);
+        Page<GroupResponseDTO> groups = groupService.findAll(auth, pageable);
         log.debug("Получено {} групп из {} всего", groups.getNumberOfElements(), groups.getTotalElements());
         return groups;
     }
@@ -74,7 +71,7 @@ public class GroupController {
             @ApiResponse(responseCode = "200", description = "Группа успешно создана"),
             @ApiResponse(responseCode = "403", description = "Доступ запрещен - требуется роль ADMIN")
     })
-    public ResponseEntity<Group> createGroup(
+    public ResponseEntity<GroupResponseDTO> createGroup(
             @Parameter(description = "Название группы", required = true)
             @RequestParam String name,
             @Parameter(description = "Описание группы")
@@ -95,7 +92,7 @@ public class GroupController {
             @Parameter(description = "ID группы", required = true)
             @PathVariable Integer groupId) {
         log.info("Запрос на получение студентов группы id={}", groupId);
-        List<PersonResponseDTO> students = groupServiceImpl.getStudentsByGroupId(groupId);
+        List<PersonResponseDTO> students = groupService.getStudentsByGroupId(groupId);
         log.debug("Получено {} студентов в группе id={}", students.size(), groupId);
         return ResponseEntity.ok(students);
     }
@@ -114,7 +111,7 @@ public class GroupController {
             @Parameter(description = "ID студента", required = true)
             @PathVariable Integer studentId) {
         log.info("Запрос на добавление студента id={} в группу id={}", studentId, groupId);
-        groupServiceImpl.addStudentToGroup(groupId, studentId);
+        groupService.addStudentToGroup(groupId, studentId);
         log.info("Студент id={} успешно добавлен в группу id={}", studentId, groupId);
         return ResponseEntity.ok().build();
     }
@@ -132,7 +129,7 @@ public class GroupController {
             @Parameter(description = "ID студента", required = true)
             @PathVariable Integer studentId) {
         log.info("Запрос на удаление студента id={} из группы id={}", studentId, groupId);
-        groupServiceImpl.removeStudentFromGroup(groupId, studentId);
+        groupService.removeStudentFromGroup(groupId, studentId);
         log.info("Студент id={} успешно удален из группы id={}", studentId, groupId);
         return ResponseEntity.noContent().build();
     }
@@ -148,7 +145,7 @@ public class GroupController {
             @Parameter(description = "ID группы", required = true)
             @PathVariable Integer groupId) {
         log.info("Запрос на удаление группы id={}", groupId);
-        groupServiceImpl.removeGroup(groupId);
+        groupService.removeGroup(groupId);
         log.info("Группа id={} успешно удалена", groupId);
         return ResponseEntity.noContent().build();
     }
@@ -165,7 +162,7 @@ public class GroupController {
             @PathVariable Integer groupId,
             Authentication auth) {
         log.info("Запрос на получение информации о группе id={} от пользователя: {}", groupId, auth.getName());
-        GroupResponseDTO group = groupServiceImpl.findById(groupId, auth);
+        GroupResponseDTO group = groupService.findById(groupId, auth);
         log.debug("Информация о группе id={} успешно получена", groupId);
         return ResponseEntity.ok(group);
     }
@@ -181,7 +178,7 @@ public class GroupController {
             @Parameter(description = "ID группы", required = true)
             @PathVariable Integer groupId) {
         log.info("Запрос на получение задач группы id={}", groupId);
-        Set<TaskResponseDTO> tasks = taskServiceImpl.getGroupTasks(groupId);
+        Set<TaskResponseDTO> tasks = taskService.getGroupTasks(groupId);
         log.debug("Получено {} задач для группы id={}", tasks.size(), groupId);
         return ResponseEntity.ok(tasks);
     }
@@ -195,7 +192,7 @@ public class GroupController {
     })
     public ResponseEntity<List<PersonResponseDTO>> getStudents(Authentication auth) {
         log.info("Запрос на получение студентов преподавателя: {}", auth.getName());
-        List<PersonResponseDTO> students = convertToResponsePerson(groupServiceImpl.findByTeacherId(auth));
+        List<PersonResponseDTO> students = groupMapper.toDTOList(groupService.findByTeacherId(auth));
         log.debug("Получено {} студентов для преподавателя {}", students.size(), auth.getName());
         return ResponseEntity.ok(students);
     }
@@ -209,14 +206,10 @@ public class GroupController {
     })
     public ResponseEntity<List<PersonResponseDTO>> getStudentsHasGroup() {
         log.info("Запрос на получение студентов, имеющих группу");
-        List<PersonResponseDTO> students = groupServiceImpl.getStudentsHasGroup();
+        List<PersonResponseDTO> students = groupService.getStudentsHasGroup();
         log.debug("Получено {} студентов, имеющих группу", students.size());
         return ResponseEntity.ok(students);
     }
 
-    private List<PersonResponseDTO> convertToResponsePerson(List<Person> allUsers) {
-        return allUsers.stream()
-                .map(user -> modelMapper.map(user, PersonResponseDTO.class))
-                .collect(Collectors.toList());
-    }
+
 }

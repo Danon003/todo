@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -33,13 +32,13 @@ import ru.danon.spring.ToDo.dto.IdDTO;
 import ru.danon.spring.ToDo.dto.LogResponseDTO;
 import ru.danon.spring.ToDo.dto.PersonDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
+import ru.danon.spring.ToDo.mappers.PersonMapper;
 import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.services.AdminService;
 import ru.danon.spring.ToDo.services.PeopleService;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -52,7 +51,7 @@ public class AdminController {
     private final AdminService adminService;
     private final PeopleService peopleService;
     private final PasswordEncoder passwordEncoder;
-    private final ModelMapper modelMapper;
+    private final PersonMapper personMapper;
 
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
@@ -69,7 +68,7 @@ public class AdminController {
         log.info("Запрос на получение списка всех пользователей с пагинацией: page={}, size={}", page.getPageNumber(), page.getPageSize());
         Page<Person> usersPage = adminService.getAllUsers(page);
         log.debug("Получено {} пользователей из {} всего", usersPage.getNumberOfElements(), usersPage.getTotalElements());
-        return usersPage.map(person -> modelMapper.map(person, PersonResponseDTO.class));
+        return usersPage.map(personMapper::toDto);
     }
 
     @PostMapping("/users")
@@ -82,21 +81,22 @@ public class AdminController {
                     content = @Content(schema = @Schema(implementation = String.class))),
             @ApiResponse(responseCode = "403", description = "Доступ запрещен - требуется роль ADMIN")
     })
-    public ResponseEntity<?> createUser(@Valid @RequestBody PersonDTO personDTO) {
+    public ResponseEntity<PersonResponseDTO> createUser(@Valid @RequestBody PersonDTO personDTO) {
         log.info("Запрос на создание нового пользователя с email: {}", personDTO.getEmail());
+
         if (peopleService.findByEmail(personDTO.getEmail()).isPresent()) {
             log.warn("Попытка создания пользователя с уже существующим email: {}", personDTO.getEmail());
-            return ResponseEntity.badRequest().body("Email already in use");
+            return ResponseEntity.badRequest().build();
         }
 
-        Person person = convertToPerson(personDTO);
+        Person person = personMapper.toEntity(personDTO);
         person.setPassword(passwordEncoder.encode(person.getPassword()));
         person.setRole("ROLE_STUDENT");
         person.setCreatedAt(LocalDateTime.now());
 
         Person savedPerson = peopleService.save(person);
         log.info("Пользователь успешно создан: id={}, email={}", savedPerson.getId(), savedPerson.getEmail());
-        return ResponseEntity.ok(savedPerson);
+        return ResponseEntity.ok(personMapper.toDto(savedPerson));
     }
 
     @DeleteMapping("/users/{userId}/delete")
@@ -144,11 +144,11 @@ public class AdminController {
             @ApiResponse(responseCode = "403", description = "Доступ запрещен - требуется роль ADMIN"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
-    public ResponseEntity<Person> createTeachers(@RequestBody IdDTO id) {
+    public ResponseEntity<PersonResponseDTO> createTeachers(@RequestBody IdDTO id) {
         log.info("Запрос на назначение пользователя id={} преподавателем", id.getId());
         Person teacher = adminService.createTeacher(id.getId());
         log.info("Пользователь id={} успешно назначен преподавателем", id.getId());
-        return ResponseEntity.ok(teacher);
+        return ResponseEntity.ok(personMapper.toDto(teacher));
     }
 
     @GetMapping("/users/by-role")
@@ -167,7 +167,7 @@ public class AdminController {
         log.info("Запрос на получение пользователей с ролью: {}, page={}, size={}", role, page.getPageNumber(), page.getPageSize());
         Page<Person> usersPage = adminService.getUsersByRole(role, page);
         log.debug("Найдено {} пользователей с ролью {} из {} всего", usersPage.getNumberOfElements(), role, usersPage.getTotalElements());
-        return ResponseEntity.ok(usersPage.map(person -> modelMapper.map(person, PersonResponseDTO.class)));
+        return ResponseEntity.ok(usersPage.map(personMapper::toDto));
     }
 
     @GetMapping("/role-audit-log")
@@ -219,13 +219,4 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    private Person convertToPerson(PersonDTO personDTO) {
-        return modelMapper.map(personDTO, Person.class);
-    }
-
-    private List<PersonResponseDTO> convertToResponsePerson(List<Person> allUsers) {
-        return allUsers.stream()
-                .map(user -> modelMapper.map(user, PersonResponseDTO.class))
-                .collect(Collectors.toList());
-    }
 }

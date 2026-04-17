@@ -39,4 +39,6 @@ public interface VideoMeetingService {
 
     @Transactional
     void completeMeeting(Integer meetingId, String username);
+
+    String getEmbedUrl(String meetingId, String userName, boolean isModerator);
 }

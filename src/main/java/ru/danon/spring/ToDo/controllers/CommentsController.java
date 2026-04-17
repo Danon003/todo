@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -27,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.CommentDTO;
 import ru.danon.spring.ToDo.dto.CommentRequest;
 import ru.danon.spring.ToDo.exceptions.EntityNotFoundException;
-import ru.danon.spring.ToDo.models.mongo.Comment;
+import ru.danon.spring.ToDo.mappers.CommentMapper;
 import ru.danon.spring.ToDo.services.CommentsService;
 import ru.danon.spring.ToDo.services.PeopleService;
 
@@ -41,9 +40,9 @@ import java.util.List;
 @Slf4j
 public class CommentsController {
 
-    private final CommentsService commentsServiceImpl;
+    private final CommentsService commentsService;
     private final PeopleService peopleService;
-    private final ModelMapper modelMapper;
+    private final CommentMapper commentMapper;
 
     @GetMapping
     @Operation(summary = "Получить комментарии к задаче", description = "Возвращает страницу с комментариями для указанной задачи")
@@ -59,7 +58,7 @@ public class CommentsController {
             @PageableDefault(size = 20) Pageable pageable) {
 
         log.info("Запрос на получение комментариев к задаче id={}, page={}, size={}", taskId, pageable.getPageNumber(), pageable.getPageSize());
-        Page<CommentDTO> comments = commentsServiceImpl.getTaskComments(taskId, pageable);
+        Page<CommentDTO> comments = commentsService.getTaskComments(taskId, pageable);
         log.debug("Получено {} комментариев к задаче id={}", comments.getNumberOfElements(), taskId);
         return ResponseEntity.ok(comments);
     }
@@ -79,7 +78,7 @@ public class CommentsController {
             Authentication auth) {
 
         log.info("Запрос на создание комментария к задаче id={} от пользователя: {}", taskId, auth.getName());
-        CommentDTO createdComment = commentsServiceImpl.addComment(taskId, auth, commentDTO);
+        CommentDTO createdComment = commentsService.addComment(taskId, auth, commentDTO);
         log.info("Комментарий успешно создан к задаче id={}, commentId={}", taskId, createdComment.getId());
         return ResponseEntity.ok(createdComment);
     }
@@ -108,7 +107,7 @@ public class CommentsController {
                     return new RuntimeException("Пользователь не найден");
                 });
 
-        CommentDTO updatedComment = commentsServiceImpl.updateComment(
+        CommentDTO updatedComment = commentsService.updateComment(
                 commentId,
                 request.getContent(),
                 currentUser.getId()
@@ -139,7 +138,7 @@ public class CommentsController {
                     return new EntityNotFoundException("Пользователь не найден");
                 });
 
-        commentsServiceImpl.deleteComment(commentId, currentUser.getId(), currentUser.getRole());
+        commentsService.deleteComment(commentId, currentUser.getId(), currentUser.getRole());
         log.info("Комментарий id={} успешно удален пользователем id={} с ролью {}", commentId, currentUser.getId(), currentUser.getRole());
         return ResponseEntity.noContent().build();
     }
@@ -158,15 +157,11 @@ public class CommentsController {
             @PathVariable String commentId) {
 
         log.info("Запрос на получение ответов к комментарию id={} задачи id={}", commentId, taskId);
-        List<CommentDTO> replies = commentsServiceImpl.getCommentReplies(commentId)
+        List<CommentDTO> replies = commentsService.getCommentReplies(commentId)
                 .stream()
-                .map(this::convertToCommentDTO)
+                .map(commentMapper::toDTO)
                 .toList();
         log.debug("Получено {} ответов к комментарию id={}", replies.size(), commentId);
         return ResponseEntity.ok(replies);
-    }
-
-    private CommentDTO convertToCommentDTO(Comment comment) {
-        return modelMapper.map(comment, CommentDTO.class);
     }
 }

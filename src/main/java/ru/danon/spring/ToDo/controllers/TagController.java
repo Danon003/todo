@@ -17,10 +17,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.TagDTO;
+import ru.danon.spring.ToDo.mappers.TagMapper;
+
 import ru.danon.spring.ToDo.services.TagService;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,7 +30,9 @@ import java.util.stream.Collectors;
 @SecurityRequirement(name = "bearerAuth")
 @Slf4j
 public class TagController {
-    private final TagService tagServiceImpl;
+
+    private final TagService tagService;
+    private final TagMapper tagMapper;
 
     @GetMapping
     @Operation(summary = "Получить все теги", description = "Возвращает список всех доступных тегов")
@@ -39,10 +42,8 @@ public class TagController {
     })
     public ResponseEntity<List<TagDTO>> getAllTags() {
         log.info("Запрос на получение всех тегов");
-        List<ru.danon.spring.ToDo.models.postgre.Tag> tags = tagServiceImpl.getAllTags();
-        List<TagDTO> tagDTOs = tags.stream()
-                .map(tag -> new TagDTO(tag.getId(), tag.getName()))
-                .collect(Collectors.toList());
+        List<ru.danon.spring.ToDo.models.postgre.Tag> tags = tagService.getAllTags();
+        List<TagDTO> tagDTOs = tagMapper.toDtoList(tags);
         log.debug("Получено {} тегов", tagDTOs.size());
         return ResponseEntity.ok(tagDTOs);
     }
@@ -58,10 +59,11 @@ public class TagController {
             @Parameter(description = "Данные тега", required = true)
             @RequestBody TagDTO tagDTO) {
         log.info("Запрос на создание нового тега: {}", tagDTO.getName());
-        ru.danon.spring.ToDo.models.postgre.Tag tag = new ru.danon.spring.ToDo.models.postgre.Tag();
-        tag.setName(tagDTO.getName());
-        tagServiceImpl.createTag(tag);
+
+        ru.danon.spring.ToDo.models.postgre.Tag tag = tagMapper.toEntity(tagDTO);
+        tagService.createTag(tag);
+
         log.info("Тег успешно создан: id={}, name={}", tag.getId(), tag.getName());
-        return ResponseEntity.ok(new TagDTO(tag.getId(), tag.getName()));
+        return ResponseEntity.ok(tagMapper.toDto(tag));
     }
 }

@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,8 +20,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.AuthenticationDTO;
 import ru.danon.spring.ToDo.dto.ForgotPasswordRequest;
+import ru.danon.spring.ToDo.dto.JWTResponse;
 import ru.danon.spring.ToDo.dto.PersonDTO;
 import ru.danon.spring.ToDo.dto.ResetPasswordRequest;
+import ru.danon.spring.ToDo.mappers.PersonMapper;
 import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.security.JWTUtil;
 import ru.danon.spring.ToDo.services.RegistrationService;
@@ -37,9 +38,9 @@ import java.util.Map;
 @Slf4j
 public class AuthController {
     private final PersonValidator personValidator;
-    private final RegistrationService registrationServiceImpl;
+    private final RegistrationService registrationService;
     private final JWTUtil jwtUtil;
-    private final ModelMapper modelMapper;
+    private final PersonMapper personMapper;
     private final AuthenticationManager authenticationManager;
 
     @PostMapping("/registration")
@@ -50,7 +51,7 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Ошибка валидации или пароль не указан",
                     content = @Content(schema = @Schema(example = "{\"message\": \"Пароль обязателен для регистрации!\"}")))
     })
-    public Map<String, String> performRegistration(
+    public ResponseEntity<JWTResponse> performRegistration(
             @Parameter(description = "Данные для регистрации пользователя", required = true)
             @RequestBody @Valid PersonDTO personDTO,
             BindingResult bindingResult) {
@@ -60,23 +61,25 @@ public class AuthController {
         // Проверяем, что пароль указан при регистрации
         if (personDTO.getPassword() == null || personDTO.getPassword().trim().isEmpty()) {
             log.warn("Попытка регистрации без пароля для пользователя: {}", personDTO.getUsername());
-            return Map.of("message", "Пароль обязателен для регистрации!");
+            return ResponseEntity.badRequest().build();
         }
 
-        Person person = convertToPerson(personDTO);
+        Person person = personMapper.toEntity(personDTO);
 
         personValidator.validate(person, bindingResult);
 
         if (bindingResult.hasErrors()) {
             log.warn("Ошибка валидации при регистрации пользователя {}: {}", personDTO.getUsername(), bindingResult.getAllErrors());
-            return Map.of("message", "Error!");
+            return ResponseEntity.badRequest().build();
         }
 
-        registrationServiceImpl.register(person);
+        registrationService.register(person);
         String token = jwtUtil.generateToken(personDTO.getUsername());
         log.info("Пользователь {} успешно зарегистрирован", personDTO.getUsername());
 
-        return Map.of("jwt-token", token);
+        JWTResponse response = new JWTResponse();
+        response.setJwtToken(token);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
@@ -87,7 +90,7 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Неверные учетные данные",
                     content = @Content(schema = @Schema(example = "{\"message\": \"Incorrect credentials!\"}")))
     })
-    public Map<String, String> performLogin(
+    public ResponseEntity<JWTResponse> performLogin(
             @Parameter(description = "Учетные данные пользователя", required = true)
             @RequestBody AuthenticationDTO authenticationDTO) {
         log.info("Попытка входа пользователя: {}", authenticationDTO.getUsername());
@@ -100,7 +103,9 @@ public class AuthController {
 
 
         String token = jwtUtil.generateToken(authenticationDTO.getUsername());
-        return Map.of("jwt-token", token);
+        JWTResponse response = new JWTResponse();
+        response.setJwtToken(token);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/forgot-password")
@@ -114,7 +119,7 @@ public class AuthController {
             @RequestBody ForgotPasswordRequest request) {
 
         log.info("Запрос на восстановление пароля для email: {}", request.getEmail());
-        registrationServiceImpl.initiatePasswordReset(request.getEmail());
+        registrationService.initiatePasswordReset(request.getEmail());
         log.info("Код восстановления отправлен на email: {}", request.getEmail());
         return ResponseEntity.ok().build();
     }
@@ -130,12 +135,8 @@ public class AuthController {
             @RequestBody ResetPasswordRequest request) {
 
         log.info("Запрос на сброс пароля для email: {}", request.getEmail());
-        registrationServiceImpl.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
+        registrationService.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
         log.info("Пароль успешно сброшен для email: {}", request.getEmail());
         return ResponseEntity.ok().build();
-    }
-
-    public Person convertToPerson(PersonDTO personDTO) {
-        return modelMapper.map(personDTO, Person.class);
     }
 }

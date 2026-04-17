@@ -23,13 +23,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.CreateVideoMeetingDTO;
+import ru.danon.spring.ToDo.dto.EmbedInfoResponseDTO;
+import ru.danon.spring.ToDo.dto.JoinUrlResponseDTO;
+import ru.danon.spring.ToDo.dto.MessageResponseDTO;
 import ru.danon.spring.ToDo.dto.VideoMeetingDTO;
 import ru.danon.spring.ToDo.services.VideoMeetingService;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,7 +39,7 @@ import java.util.Map;
 @Slf4j
 public class VideoMeetingController {
 
-    private final VideoMeetingService videoMeetingServiceImpl;
+    private final VideoMeetingService videoMeetingService;
 
     @GetMapping
     @Operation(summary = "Получить все встречи", description = "Возвращает список всех доступных видеовстреч (в зависимости от роли)")
@@ -56,11 +56,11 @@ public class VideoMeetingController {
         List<VideoMeetingDTO> meetings;
         if (role.equals("ROLE_TEACHER") || role.equals("ROLE_ADMIN")) {
             // Преподаватели видят все встречи
-            meetings = videoMeetingServiceImpl.getAllMeetings();
+            meetings = videoMeetingService.getAllMeetings();
             log.info("Преподаватель/админ {} видит {} встреч", username, meetings.size());
         } else {
             // Студенты видят встречи своей группы И встречи без группы
-            meetings = videoMeetingServiceImpl.getMeetingsForStudent(username);
+            meetings = videoMeetingService.getMeetingsForStudent(username);
             log.info("Студент {} видит {} встреч", username, meetings.size());
         }
 
@@ -75,7 +75,7 @@ public class VideoMeetingController {
     })
     public ResponseEntity<List<VideoMeetingDTO>> getMyMeetings(Authentication authentication) {
         log.info("Запрос на получение встреч созданных пользователем: {}", authentication.getName());
-        List<VideoMeetingDTO> meetings = videoMeetingServiceImpl.getMeetingsByCreator(authentication.getName());
+        List<VideoMeetingDTO> meetings = videoMeetingService.getMeetingsByCreator(authentication.getName());
         log.debug("Найдено {} встреч созданных пользователем {}", meetings.size(), authentication.getName());
         return ResponseEntity.ok(meetings);
     }
@@ -90,7 +90,7 @@ public class VideoMeetingController {
             @Parameter(description = "ID группы", required = true)
             @PathVariable Integer groupId) {
         log.info("Запрос на получение встреч для группы id={}", groupId);
-        List<VideoMeetingDTO> meetings = videoMeetingServiceImpl.getMeetingsByGroup(groupId);
+        List<VideoMeetingDTO> meetings = videoMeetingService.getMeetingsByGroup(groupId);
         log.debug("Найдено {} встреч для группы id={}", meetings.size(), groupId);
         return ResponseEntity.ok(meetings);
     }
@@ -106,7 +106,7 @@ public class VideoMeetingController {
             @Parameter(description = "ID встречи", required = true)
             @PathVariable Integer meetingId) {
         log.info("Запрос на получение информации о встрече id={}", meetingId);
-        VideoMeetingDTO meeting = videoMeetingServiceImpl.getMeetingById(meetingId);
+        VideoMeetingDTO meeting = videoMeetingService.getMeetingById(meetingId);
         log.debug("Информация о встрече id={} успешно получена", meetingId);
         return ResponseEntity.ok(meeting);
     }
@@ -120,7 +120,7 @@ public class VideoMeetingController {
             @ApiResponse(responseCode = "400", description = "Некорректные данные встречи"),
             @ApiResponse(responseCode = "403", description = "Доступ запрещен - требуется роль TEACHER")
     })
-    public ResponseEntity<?> createMeeting(
+    public ResponseEntity<VideoMeetingDTO> createMeeting(
             @Parameter(description = "Данные для создания встречи", required = true)
             @Valid @RequestBody CreateVideoMeetingDTO createDTO,
             Authentication authentication) {
@@ -128,7 +128,7 @@ public class VideoMeetingController {
         log.info("Запрос на создание встречи: title={}, startTime={}, endTime={}, от пользователя: {}",
                 createDTO.getTitle(), createDTO.getStartTime(), createDTO.getEndTime(), authentication.getName());
 
-        VideoMeetingDTO meeting = videoMeetingServiceImpl.createMeeting(createDTO, authentication.getName());
+        VideoMeetingDTO meeting = videoMeetingService.createMeeting(createDTO, authentication.getName());
         log.info("Встреча успешно создана: id={}, title={}", meeting.getId(), meeting.getTitle());
         return ResponseEntity.ok(meeting);
     }
@@ -142,7 +142,7 @@ public class VideoMeetingController {
             @ApiResponse(responseCode = "400", description = "Некорректные данные"),
             @ApiResponse(responseCode = "404", description = "Встреча не найдена")
     })
-    public ResponseEntity<?> updateMeeting(
+    public ResponseEntity<VideoMeetingDTO> updateMeeting(
             @Parameter(description = "ID встречи", required = true)
             @PathVariable Integer meetingId,
             @Parameter(description = "Обновленные данные встречи", required = true)
@@ -150,7 +150,7 @@ public class VideoMeetingController {
             Authentication authentication) {
 
         log.info("Запрос на обновление встречи id={} от пользователя: {}", meetingId, authentication.getName());
-        VideoMeetingDTO meeting = videoMeetingServiceImpl.updateMeeting(meetingId, updateDTO, authentication.getName());
+        VideoMeetingDTO meeting = videoMeetingService.updateMeeting(meetingId, updateDTO, authentication.getName());
         log.info("Встреча id={} успешно обновлена", meetingId);
         return ResponseEntity.ok(meeting);
     }
@@ -163,15 +163,15 @@ public class VideoMeetingController {
             @ApiResponse(responseCode = "400", description = "Ошибка удаления встречи"),
             @ApiResponse(responseCode = "404", description = "Встреча не найдена")
     })
-    public ResponseEntity<?> deleteMeeting(
+    public ResponseEntity<MessageResponseDTO> deleteMeeting(
             @Parameter(description = "ID встречи", required = true)
             @PathVariable Integer meetingId,
             Authentication authentication) {
 
         log.info("Запрос на удаление встречи id={} от пользователя: {}", meetingId, authentication.getName());
-        videoMeetingServiceImpl.deleteMeeting(meetingId, authentication.getName());
+        videoMeetingService.deleteMeeting(meetingId, authentication.getName());
         log.info("Встреча id={} успешно удалена пользователем {}", meetingId, authentication.getName());
-        return ResponseEntity.ok(Map.of("message", "Видеовстреча успешно удалена"));
+        return ResponseEntity.ok(new MessageResponseDTO("Видеовстреча успешно удалена"));
     }
 
     @GetMapping("/{meetingId}/join")
@@ -182,7 +182,7 @@ public class VideoMeetingController {
             @ApiResponse(responseCode = "400", description = "Ошибка получения ссылки"),
             @ApiResponse(responseCode = "404", description = "Встреча не найдена")
     })
-    public ResponseEntity<?> getJoinUrl(
+    public ResponseEntity<JoinUrlResponseDTO> getJoinUrl(
             @Parameter(description = "ID встречи", required = true)
             @PathVariable Integer meetingId,
             Authentication authentication) {
@@ -193,9 +193,9 @@ public class VideoMeetingController {
 
         log.info("Запрос на получение ссылки для присоединения к встрече id={} от пользователя: {}, модератор: {}",
                 meetingId, username, isModerator);
-        String joinUrl = videoMeetingServiceImpl.getJoinUrl(meetingId, username, isModerator);
+        String joinUrl = videoMeetingService.getJoinUrl(meetingId, username, isModerator);
         log.debug("Ссылка для присоединения к встрече id={} успешно сгенерирована", meetingId);
-        return ResponseEntity.ok(Map.of("joinUrl", joinUrl));
+        return ResponseEntity.ok(new JoinUrlResponseDTO(joinUrl));
     }
 
     @GetMapping("/{meetingId}/embed")
@@ -205,12 +205,12 @@ public class VideoMeetingController {
                     content = @Content(schema = @Schema(example = "{\"meeting\": {...}, \"embedUrl\": \"...\", \"isModerator\": false, \"userName\": \"student\"}"))),
             @ApiResponse(responseCode = "400", description = "Ошибка получения информации")
     })
-    public ResponseEntity<?> getMeetingEmbedInfo(
+    public ResponseEntity<EmbedInfoResponseDTO> getMeetingEmbedInfo(
             @Parameter(description = "ID встречи", required = true)
             @PathVariable Integer meetingId,
             Authentication authentication) {
 
-        VideoMeetingDTO meeting = videoMeetingServiceImpl.getMeetingById(meetingId);
+        VideoMeetingDTO meeting = videoMeetingService.getMeetingById(meetingId);
         String username = authentication.getName();
         String role = authentication.getAuthorities().iterator().next().getAuthority();
         boolean isModerator = role.equals("ROLE_TEACHER") || role.equals("ROLE_ADMIN");
@@ -219,28 +219,16 @@ public class VideoMeetingController {
                 meetingId, username, isModerator);
 
         // Генерируем embed URL
-        String embedUrl = generateJitsiEmbedUrl(meeting.getMeetingId(), username, isModerator);
+        String embedUrl = videoMeetingService.getEmbedUrl(meeting.getMeetingId(), username, isModerator);
         log.debug("Embed URL для встречи id={} успешно сгенерирован", meetingId);
 
-        return ResponseEntity.ok(Map.of(
-                "meeting", meeting,
-                "embedUrl", embedUrl,
-                "isModerator", isModerator,
-                "userName", username
-        ));
-    }
+        EmbedInfoResponseDTO response = new EmbedInfoResponseDTO();
+        response.setMeeting(meeting);
+        response.setEmbedUrl(embedUrl);
+        response.setModerator(isModerator);
+        response.setUserName(username);
 
-    /**
-     * Генерирует URL для embed Jitsi Meet
-     */
-    private String generateJitsiEmbedUrl(String meetingId, String userName, boolean isModerator) {
-        return "https://meet.jit.si/" + meetingId +
-                "#config.prejoinPageEnabled=false" + // Пропускаем страницу присоединения
-                "&userInfo.displayName=" + URLEncoder.encode(userName, StandardCharsets.UTF_8) +
-                "&interfaceConfig.DEFAULT_BACKGROUND=\"#ffffff\"" +
-                "&config.disableModeratorIndicator=" + !isModerator +
-                "&config.startWithAudioMuted=true" +
-                "&config.startWithVideoMuted=false";
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{meetingId}/complete")
@@ -251,15 +239,16 @@ public class VideoMeetingController {
             @ApiResponse(responseCode = "400", description = "Ошибка завершения встречи"),
             @ApiResponse(responseCode = "404", description = "Встреча не найдена")
     })
-    public ResponseEntity<?> completeMeeting(
+    public ResponseEntity<MessageResponseDTO> completeMeeting(
             @Parameter(description = "ID встречи", required = true)
             @PathVariable Integer meetingId,
             Authentication authentication) {
 
         String username = authentication.getName();
         log.info("Запрос на завершение встречи id={} от пользователя: {}", meetingId, username);
-        videoMeetingServiceImpl.completeMeeting(meetingId, username);
+        videoMeetingService.completeMeeting(meetingId, username);
         log.info("Встреча id={} успешно завершена пользователем {}", meetingId, username);
-        return ResponseEntity.ok(Map.of("message", "Встреча успешно завершена"));
+        return ResponseEntity.ok(new MessageResponseDTO("Встреча успешно завершена"));
     }
+
 }

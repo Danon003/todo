@@ -21,6 +21,7 @@ import ru.danon.spring.ToDo.dto.TaskResponseDTO;
 import ru.danon.spring.ToDo.dto.TaskStatDTO;
 import ru.danon.spring.ToDo.enums.TaskStatus;
 import ru.danon.spring.ToDo.exceptions.EntityNotFoundException;
+import ru.danon.spring.ToDo.mappers.TaskMapper;
 import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.models.postgre.Tag;
 import ru.danon.spring.ToDo.models.postgre.Task;
@@ -62,13 +63,15 @@ public class TaskServiceImpl implements TaskService {
     private final TaskTagRepository taskTagRepository;
     private final TaskAssignmentRepository taskAssignmentRepository;
     private final NotificationProducerService notificationProducerServiceImpl;
-    private final ModelMapper modelMapper;
+    private final TaskMapper taskMapper;
     private final TagService tagServiceImpl;
     private final TaskFileService taskFileService;
     private final FileStorageService fileStorageServiceImpl;
     private final NotificationSchedulingService notificationSchedulingServiceImpl;
 
-    @Transactional @Override public TaskResponseDTO createTask(MyTaskDTO taskDTO, String username) {
+    @Transactional
+    @Override
+    public TaskResponseDTO createTask(MyTaskDTO taskDTO, String username) {
         log.info("Создание задачи пользователем: {}", username);
 
         Person author = peopleService.findByUsername(username)
@@ -114,11 +117,13 @@ public class TaskServiceImpl implements TaskService {
                 }
             }
         }
-        return convertToResponseDTO(savedTask);
+        return taskMapper.convertToResponseDto(savedTask);
     }
 
     //удалить таску
-    @Transactional @Override public void deleteTask(Integer taskId) {
+    @Transactional
+    @Override
+    public void deleteTask(Integer taskId) {
         log.info("Удаление задачи id={}", taskId);
 
         notificationSchedulingServiceImpl.cancelAllTaskNotifications(taskId);
@@ -130,21 +135,24 @@ public class TaskServiceImpl implements TaskService {
     }
 
     //просмотреть все созданные таски
-    @Override public List<Task> findAllTasks() {
+    @Override
+    public List<Task> findAllTasks() {
         log.debug("Получение всех задач");
         List<Task> tasks = taskRepository.findAll();
         log.debug("Найдено {} задач", tasks.size());
         return tasks;
     }
 
-    @Override public Page<Task> findAllTasks(Pageable pageable) {
+    @Override
+    public Page<Task> findAllTasks(Pageable pageable) {
         log.debug("Получение всех задач с пагинацией: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
         return taskRepository.findAll(pageable);
     }
 
 
     //посмотреть конкретную таску
-    @Override public Task findTaskById(Integer taskId) {
+    @Override
+    public Task findTaskById(Integer taskId) {
         log.debug("Поиск задачи id={}", taskId);
         return taskRepository.findById(taskId)
                 .orElseThrow(() -> {
@@ -154,7 +162,9 @@ public class TaskServiceImpl implements TaskService {
     }
 
     //назначить таску юзеру(функция для препода)
-    @Transactional @Override public void assignTask(Integer taskId, Integer userId, String currentUsername) {
+    @Transactional
+    @Override
+    public void assignTask(Integer taskId, Integer userId, String currentUsername) {
         log.info("Назначение задачи id={} пользователю id={} преподавателем: {}", taskId, userId, currentUsername);
 
         if (taskAssignmentRepository.existsById(new TaskAssignmentId(taskId, userId))) {
@@ -208,7 +218,9 @@ public class TaskServiceImpl implements TaskService {
     }
 
     //назначить таску группе по её Id (функция для препода)
-    @Transactional @Override public void assignTaskForGroup(Integer taskID, Integer groupId, String currentUsername) {
+    @Transactional
+    @Override
+    public void assignTaskForGroup(Integer taskID, Integer groupId, String currentUsername) {
         log.info("Назначение задачи id={} группе id={} преподавателем: {}", taskID, groupId, currentUsername);
 
         List<Person> groupMembers = groupServiceImpl.getPersonsByGroupId(groupId);
@@ -229,7 +241,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
     //получить статус таски (функция для препода)
-    @Override public TaskStatDTO findStatusTask(Integer id, Integer taskId, String filter) {
+    @Override
+    public TaskStatDTO findStatusTask(Integer id, Integer taskId, String filter) {
         log.debug("Получение статуса задачи id={} для {} id={}", taskId, filter, id);
 
         TaskStatDTO taskDTO = new TaskStatDTO();
@@ -279,7 +292,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
 
-    @Override public Page<MyTaskDTO> findMyTasks(String username, Pageable pageable) {
+    @Override
+    public Page<MyTaskDTO> findMyTasks(String username, Pageable pageable) {
         log.debug("Получение задач пользователя: {}, page={}, size={}", username, pageable.getPageNumber(), pageable.getPageSize());
 
         Person user = peopleService.findByUsername(username)
@@ -328,7 +342,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
 
-    @Override public Page<MyTaskDTO> findUserTasks(Integer userId, Pageable pageable) {
+    @Override
+    public Page<MyTaskDTO> findUserTasks(Integer userId, Pageable pageable) {
         log.debug("Получение задач пользователя id={}, page={}, size={}", userId, pageable.getPageNumber(), pageable.getPageSize());
 
         Person user = peopleService.findById(userId)
@@ -379,7 +394,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
     //юзер ищет свою конкретную таску
-    @Override public MyTaskDTO findMyTasksById(Integer taskId, String currentUsername) {
+    @Override
+    public MyTaskDTO findMyTasksById(Integer taskId, String currentUsername) {
         log.debug("Получение задачи id={} пользователем: {}", taskId, currentUsername);
 
         Person currentUser = peopleService.findByUsername(currentUsername)
@@ -423,7 +439,8 @@ public class TaskServiceImpl implements TaskService {
 
 
     //юзер получает статус конкретной таски
-    @Override public StatusDTO findStatusMyTask(Integer taskId, String currentUsername) {
+    @Override
+    public StatusDTO findStatusMyTask(Integer taskId, String currentUsername) {
         log.debug("Получение статуса задачи id={} пользователем: {}", taskId, currentUsername);
 
         Integer myId = peopleService.findByUsername(currentUsername).get().getId();
@@ -439,7 +456,9 @@ public class TaskServiceImpl implements TaskService {
     }
 
     //юзер меняет статус конкретной таски на переданный status
-    @Transactional @Override public MyTaskDTO changeMyTask(Integer taskId, String status, String currentUsername) {
+    @Transactional
+    @Override
+    public MyTaskDTO changeMyTask(Integer taskId, String status, String currentUsername) {
         log.info("Изменение статуса задачи id={} на {} пользователем: {}", taskId, status, currentUsername);
 
         Integer myId = peopleService.findByUsername(currentUsername).get().getId();
@@ -480,7 +499,9 @@ public class TaskServiceImpl implements TaskService {
     }
 
     //юзер делится таской с другим юзером
-    @Transactional @Override public void shareTask(Integer taskId, Integer userId, String currentUsername) {
+    @Transactional
+    @Override
+    public void shareTask(Integer taskId, Integer userId, String currentUsername) {
         log.info("Передача задачи id={} пользователю id={} от: {}", taskId, userId, currentUsername);
 
         Person currentPerson = peopleService.findByUsername(currentUsername)
@@ -506,7 +527,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
 
-    @Override public Set<TaskResponseDTO> getGroupTasks(Integer groupId) {
+    @Override
+    public Set<TaskResponseDTO> getGroupTasks(Integer groupId) {
         log.debug("Получение задач группы id={}", groupId);
 
         List<Person> groupMembers = groupServiceImpl.getPersonsByGroupId(groupId);
@@ -524,14 +546,16 @@ public class TaskServiceImpl implements TaskService {
         Set<TaskResponseDTO> tasks = taskAssignmentRepository.findByUserIdIn(memberIds).stream()
                 .map(TaskAssignment::getTask)
                 .filter(Objects::nonNull)
-                .map(this::convertToResponseDTO)
+                .map(taskMapper::toResponseDto)
                 .collect(Collectors.toCollection(HashSet::new));
 
         log.debug("Найдено {} задач для группы id={}", tasks.size(), groupId);
         return tasks;
     }
 
-    @Transactional @Override public void updateOverdueTasks() {
+    @Transactional
+    @Override
+    public void updateOverdueTasks() {
         LocalDateTime now = LocalDateTime.now();
         log.debug("Проверка просроченных задач, время: {}", now);
 
@@ -561,7 +585,8 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    @Override public List<PersonResponseDTO> getUsersWithTask(Integer taskId, Authentication auth) {
+    @Override
+    public List<PersonResponseDTO> getUsersWithTask(Integer taskId, Authentication auth) {
         log.debug("Получение пользователей с задачей id={} для {}", taskId, auth.getName());
 
         Person user = peopleService.findByUsername(auth.getName())
@@ -577,7 +602,7 @@ public class TaskServiceImpl implements TaskService {
                     .filter(person -> taskAssignmentRepository.existsById(
                             new TaskAssignmentId(taskId, person.getId())
                     )).map(
-                            this::convertToPersonDTO
+                            taskMapper::convertToPersonDTO
                     )
                     .toList();
         } else {
@@ -592,7 +617,7 @@ public class TaskServiceImpl implements TaskService {
                             return false;
                         }
                     }).map(
-                            this::convertToPersonDTO
+                            taskMapper::convertToPersonDTO
                     )
                     .toList();
         }
@@ -601,9 +626,6 @@ public class TaskServiceImpl implements TaskService {
         return users;
     }
 
-    private TaskResponseDTO convertToResponseDTO(Task task){
-        return modelMapper.map(task, TaskResponseDTO.class);
-    }
 
     private TagDTO convertToTagDTO(Tag tag){
         if (tag == null) return null;
@@ -624,11 +646,11 @@ public class TaskServiceImpl implements TaskService {
                 .collect(Collectors.toList());
     }
 
-    private PersonResponseDTO convertToPersonDTO(Person user) {
-        return modelMapper.map(user, PersonResponseDTO.class);
-    }
 
-    @Transactional @Override public Task updateTask(Integer taskId, TaskDTO task, String username) {
+
+    @Transactional
+    @Override
+    public Task updateTask(Integer taskId, TaskDTO task, String username) {
         log.info("Обновление задачи id={} пользователем: {}", taskId, username);
 
         Person person = peopleService.findByUsername(username).orElseThrow(
@@ -732,55 +754,13 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    private TaskDTO convertToTaskDTO(Task task) {
-        TaskDTO dto = new TaskDTO();
-        dto.setId(task.getId());
-        dto.setTitle(task.getTitle());
-        dto.setDescription(task.getDescription());
-        dto.setDeadline(task.getDeadline());
-        dto.setPriority(task.getPriority());
-        dto.setAuthorId(task.getAuthor() != null ? task.getAuthor().getId() : null);
-
-        // Теги преобразуем вручную
-        dto.setTags(toTagDTOs(tagServiceImpl.getTaskTags(task.getId())));
-
-        return dto;
-    }
-
-    private void updateTaskAssignmentsStatus(Task task) {
-        List<TaskAssignment> assignments = taskAssignmentRepository.findByTask(task);
-        LocalDateTime now = LocalDateTime.now();
-
-        for (TaskAssignment assignment : assignments) {
-            String newStatus = calculateTaskStatus(task.getDeadline(), now, assignment.getStatus());
-            if (!assignment.getStatus().equals(newStatus)) {
-                assignment.setStatus(newStatus);
-                taskAssignmentRepository.save(assignment);
-                log.debug("Обновлен статус назначения для пользователя id={}: {}", assignment.getUserId(), assignment.getStatus());
-            }
-        }
-    }
-
-    private String calculateTaskStatus(LocalDateTime deadline, LocalDateTime now, String currentStatus) {
-        // Если задача уже завершена - не меняем статус
-        if ("COMPLETED".equals(currentStatus)) {
-            return currentStatus;
-        }
-
-        // Проверяем просроченность
-        if (now.isAfter(deadline)) {
-            return "OVERDUE";
-        } else {
-            // Если не просрочена, возвращаем к исходному статусу (но не OVERDUE)
-            return "NOT_STARTED".equals(currentStatus) || "IN_PROGRESS".equals(currentStatus) ?
-                    currentStatus : "NOT_STARTED";
-        }
-    }
 
     /**
      * Загружает решение для задачи (студент)
      */
-    @Transactional @Override public void uploadSolution(Integer taskId, MultipartFile file, String username) {
+    @Transactional
+    @Override
+    public void uploadSolution(Integer taskId, MultipartFile file, String username) {
         log.info("Загрузка решения к задаче id={} студентом: {}", taskId, username);
 
         Person student = peopleService.findByUsername(username)
@@ -847,7 +827,9 @@ public class TaskServiceImpl implements TaskService {
     /**
      * Ставит оценку за решение (преподаватель)
      */
-    @Transactional @Override public void gradeSolution(Integer taskId, Integer studentId, Integer grade, String comment, String username) {
+    @Transactional
+    @Override
+    public void gradeSolution(Integer taskId, Integer studentId, Integer grade, String comment, String username) {
         log.info("Оценка решения: задача id={}, студент id={}, оценка={}, преподаватель: {}", taskId, studentId, grade, username);
 
         Person teacher = peopleService.findByUsername(username)
@@ -909,7 +891,8 @@ public class TaskServiceImpl implements TaskService {
     /**
      * Получает файлы условия задачи
      */
-    @Override public List<TaskFile> getTaskFiles(Integer taskId) {
+    @Override
+    public List<TaskFile> getTaskFiles(Integer taskId) {
         log.debug("Получение файлов задачи id={}", taskId);
         return taskFileService.getTaskFiles(taskId);
     }
@@ -917,7 +900,8 @@ public class TaskServiceImpl implements TaskService {
     /**
      * Получает ссылку для скачивания решения
      */
-    @Override public String getSolutionDownloadUrl(Integer taskId, String username) {
+    @Override
+    public String getSolutionDownloadUrl(Integer taskId, String username) {
         log.debug("Получение ссылки для скачивания решения: задача id={}, студент: {}", taskId, username);
 
         Person student = peopleService.findByUsername(username)
@@ -946,7 +930,9 @@ public class TaskServiceImpl implements TaskService {
     /**
      * Удаляет решение студента
      */
-    @Transactional @Override public void deleteSolution(Integer taskId, String username) {
+    @Transactional
+    @Override
+    public void deleteSolution(Integer taskId, String username) {
         log.info("Удаление решения к задаче id={} студентом: {}", taskId, username);
 
         Person student = peopleService.findByUsername(username)
@@ -996,7 +982,8 @@ public class TaskServiceImpl implements TaskService {
     /**
      * Получает решение студента (для преподавателя)
      */
-    @Override public SolutionDTO getStudentSolution(Integer taskId, Authentication auth) {
+    @Override
+    public SolutionDTO getStudentSolution(Integer taskId, Authentication auth) {
         log.debug("Получение решения студента: задача id={}, пользователь: {}", taskId, auth.getName());
 
         Person user = peopleService.findByUsername(auth.getName()).orElseThrow(
@@ -1012,9 +999,11 @@ public class TaskServiceImpl implements TaskService {
                     return new EntityNotFoundException("Назначение не найдено");
                 });
 
-        if (!assignment.hasSolution()) {
-            throw new EntityNotFoundException("Решение не найдено");
-        }
+       if (!assignment.hasSolution()) {
+        SolutionDTO emptySolution = new SolutionDTO();
+        emptySolution.setCanUpload(assignment.canUploadSolution());
+        return emptySolution;
+    }
 
         SolutionDTO solutionDTO = new SolutionDTO();
         solutionDTO.setFileName(assignment.getSolutionFileName());
@@ -1028,7 +1017,8 @@ public class TaskServiceImpl implements TaskService {
         return solutionDTO;
     }
 
-    @Override public List<SolutionDTO> getAllSolutionsForTask(Integer taskId, String teacherUsername) {
+    @Override
+    public List<SolutionDTO> getAllSolutionsForTask(Integer taskId, String teacherUsername) {
         log.debug("Получение всех решений для задачи id={} преподавателем: {}", taskId, teacherUsername);
 
         // Получаем все назначения для этой задачи
@@ -1053,7 +1043,8 @@ public class TaskServiceImpl implements TaskService {
         return solutions;
     }
 
-    @Override public String getStudentSolutionDownloadUrl(Integer taskId, Integer studentId, String teacherUsername) {
+    @Override
+    public String getStudentSolutionDownloadUrl(Integer taskId, Integer studentId, String teacherUsername) {
         log.debug("Получение ссылки на решение: задача id={}, студент id={}, преподаватель: {}", taskId, studentId, teacherUsername);
 
         TaskAssignment assignment = taskAssignmentRepository.findByUserIdAndTaskId(studentId, taskId)
@@ -1074,5 +1065,51 @@ public class TaskServiceImpl implements TaskService {
         }
 
         return fileStorageServiceImpl.generateDownloadUrl(assignment.getSolutionFilePath());
+    }
+
+
+    private TaskDTO convertToTaskDTO(Task task) {
+        TaskDTO dto = new TaskDTO();
+        dto.setId(task.getId());
+        dto.setTitle(task.getTitle());
+        dto.setDescription(task.getDescription());
+        dto.setDeadline(task.getDeadline());
+        dto.setPriority(task.getPriority());
+        dto.setAuthorId(task.getAuthor() != null ? task.getAuthor().getId() : null);
+
+        // Теги преобразуем вручную
+        dto.setTags(toTagDTOs(tagServiceImpl.getTaskTags(task.getId())));
+
+        return dto;
+    }
+
+    private void updateTaskAssignmentsStatus(Task task) {
+        List<TaskAssignment> assignments = taskAssignmentRepository.findByTask(task);
+        LocalDateTime now = LocalDateTime.now();
+
+        for (TaskAssignment assignment : assignments) {
+            String newStatus = calculateTaskStatus(task.getDeadline(), now, assignment.getStatus());
+            if (!assignment.getStatus().equals(newStatus)) {
+                assignment.setStatus(newStatus);
+                taskAssignmentRepository.save(assignment);
+                log.debug("Обновлен статус назначения для пользователя id={}: {}", assignment.getUserId(), assignment.getStatus());
+            }
+        }
+    }
+
+    private String calculateTaskStatus(LocalDateTime deadline, LocalDateTime now, String currentStatus) {
+        // Если задача уже завершена - не меняем статус
+        if ("COMPLETED".equals(currentStatus)) {
+            return currentStatus;
+        }
+
+        // Проверяем просроченность
+        if (now.isAfter(deadline)) {
+            return "OVERDUE";
+        } else {
+            // Если не просрочена, возвращаем к исходному статусу (но не OVERDUE)
+            return "NOT_STARTED".equals(currentStatus) || "IN_PROGRESS".equals(currentStatus) ?
+                    currentStatus : "NOT_STARTED";
+        }
     }
 }

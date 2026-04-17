@@ -22,6 +22,8 @@ import ru.danon.spring.ToDo.services.JitsiMeetService;
 import ru.danon.spring.ToDo.services.NotificationProducerService;
 import ru.danon.spring.ToDo.services.VideoMeetingService;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -450,7 +452,9 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional @Override public void completeMeeting(Integer meetingId, String username) {
+    @Transactional
+    @Override
+    public void completeMeeting(Integer meetingId, String username) {
         log.info("Завершение встречи id={} пользователем: {}", meetingId, username);
 
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
@@ -484,5 +488,23 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
 
         videoMeetingRepository.save(meeting);
         log.info("Встреча id={} успешно завершена", meetingId);
+    }
+
+    @Override
+    public String getEmbedUrl(String meetingId, String userName, boolean isModerator) {
+        VideoMeeting meeting = videoMeetingRepository.findById(Integer.valueOf(meetingId))
+                .orElseThrow(() -> new EntityNotFoundException("Видеовстреча не найдена", meetingId));
+
+        return generateJitsiEmbedUrl(meeting.getMeetingId(), userName, isModerator);
+    }
+
+    private String generateJitsiEmbedUrl(String meetingId, String userName, boolean isModerator) {
+        return "https://meet.jit.si/" + meetingId +
+                "#config.prejoinPageEnabled=false" +
+                "&userInfo.displayName=" + URLEncoder.encode(userName, StandardCharsets.UTF_8) +
+                "&interfaceConfig.DEFAULT_BACKGROUND=\"#ffffff\"" +
+                "&config.disableModeratorIndicator=" + !isModerator +
+                "&config.startWithAudioMuted=true" +
+                "&config.startWithVideoMuted=false";
     }
 }

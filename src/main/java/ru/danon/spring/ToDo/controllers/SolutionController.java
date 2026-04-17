@@ -37,7 +37,7 @@ import java.util.List;
 @Slf4j
 public class SolutionController {
 
-    private final TaskService taskServiceImpl;
+    private final TaskService taskService;
 
     @PostMapping
     @Operation(summary = "Загрузить решение", description = "Загружает файл с решением задачи (для студента)")
@@ -54,7 +54,7 @@ public class SolutionController {
             Authentication authentication) {
         log.info("Запрос на загрузку решения к задаче id={} от пользователя: {}, файл: {}",
                 taskId, authentication.getName(), file.getOriginalFilename());
-        taskServiceImpl.uploadSolution(taskId, file, authentication.getName());
+        taskService.uploadSolution(taskId, file, authentication.getName());
         log.info("Решение успешно загружено к задаче id={} пользователем {}", taskId, authentication.getName());
         return ResponseEntity.ok().build();
     }
@@ -73,7 +73,7 @@ public class SolutionController {
 
         log.info("Запрос на получение ссылки для скачивания решения к задаче id={} от пользователя: {}",
                 taskId, authentication.getName());
-        String downloadUrl = taskServiceImpl.getSolutionDownloadUrl(taskId, authentication.getName());
+        String downloadUrl = taskService.getSolutionDownloadUrl(taskId, authentication.getName());
         log.debug("Ссылка на скачивание решения получена для задачи id={}", taskId);
         return ResponseEntity.ok(downloadUrl);
     }
@@ -90,7 +90,7 @@ public class SolutionController {
             Authentication authentication) {
 
         log.info("Запрос на удаление решения к задаче id={} от пользователя: {}", taskId, authentication.getName());
-        taskServiceImpl.deleteSolution(taskId, authentication.getName());
+        taskService.deleteSolution(taskId, authentication.getName());
         log.info("Решение к задаче id={} успешно удалено пользователем {}", taskId, authentication.getName());
         return ResponseEntity.noContent().build();
     }
@@ -109,7 +109,7 @@ public class SolutionController {
             Authentication authentication) {
         log.info("Запрос на получение всех решений к задаче id={} от преподавателя: {}",
                 taskId, authentication.getName());
-        List<SolutionDTO> solutions = taskServiceImpl.getAllSolutionsForTask(taskId, authentication.getName());
+        List<SolutionDTO> solutions = taskService.getAllSolutionsForTask(taskId, authentication.getName());
         log.debug("Получено {} решений для задачи id={}", solutions.size(), taskId);
         return ResponseEntity.ok(solutions);
     }
@@ -131,7 +131,7 @@ public class SolutionController {
             Authentication authentication) {
         log.info("Запрос на оценку решения: задача id={}, студент id={}, оценка={}, от преподавателя: {}",
                 taskId, studentId, gradeRequest.getGrade(), authentication.getName());
-        taskServiceImpl.gradeSolution(
+        taskService.gradeSolution(
                 taskId,
                 studentId,
                 gradeRequest.getGrade(),
@@ -158,7 +158,7 @@ public class SolutionController {
 
         log.info("Запрос на скачивание решения студента id={} к задаче id={} от преподавателя: {}",
                 studentId, taskId, authentication.getName());
-        String downloadUrl = taskServiceImpl.getStudentSolutionDownloadUrl(taskId, studentId, authentication.getName());
+        String downloadUrl = taskService.getStudentSolutionDownloadUrl(taskId, studentId, authentication.getName());
         log.debug("Ссылка на скачивание решения получена: задача id={}, студент id={}", taskId, studentId);
         return ResponseEntity.ok(downloadUrl);
     }
@@ -176,7 +176,7 @@ public class SolutionController {
             Authentication auth) {
         log.info("Запрос на получение информации о решении к задаче id={} от пользователя: {}",
                 taskId, auth.getName());
-        SolutionDTO solution = taskServiceImpl.getStudentSolution(taskId, auth);
+        SolutionDTO solution = taskService.getStudentSolution(taskId, auth);
         log.debug("Информация о решении получена для задачи id={}", taskId);
         return ResponseEntity.ok(solution);
     }
