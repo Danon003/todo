@@ -49,7 +49,6 @@ public class TaskMapper {
             dto.setAuthor(authorDto);
         }
 
-        // ТЕГИ: НЕ используем ModelMapper для коллекций!
         dto.setTags(mapTags(task.getTaskTags()));
 
         return dto;
@@ -76,17 +75,6 @@ public class TaskMapper {
             dto.setAuthorId(task.getAuthor().getId());
         }
 
-        return dto;
-    }
-
-    /**
-     * Task + теги -> TaskDTO
-     */
-    public TaskDTO toDto(Task task, List<Tag> tags) {
-        TaskDTO dto = toDto(task);
-        if (dto != null) {
-            dto.setTags(mapTagsFromTagList(tags));
-        }
         return dto;
     }
 

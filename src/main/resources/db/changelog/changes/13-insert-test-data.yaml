@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 13
+      author: Danon
+      runAlways: true
+      changes:
+        - sqlFile:
+            path: ../data/test-data.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            stripComments: false

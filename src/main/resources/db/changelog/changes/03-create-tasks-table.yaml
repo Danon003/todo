@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: 3
+      author: your_name
+      changes:
+        - createTable:
+            tableName: tasks
+            remarks: "Таблица задач"
+            columns:
+              - column:
+                  name: id
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "Уникальный идентификатор задачи"
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                  remarks: "Название задачи"
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+                  remarks: "Описание задачи"
+              - column:
+                  name: deadline
+                  type: TIMESTAMP
+                  remarks: "Дедлайн задачи"
+              - column:
+                  name: priority
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                  remarks: "Приоритет: HIGH, MEDIUM, LOW"
+              - column:
+                  name: author_id
+                  type: INT
+                  remarks: "ID автора задачи"
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  remarks: "Дата создания задачи"
+        - addForeignKeyConstraint:
+            baseTableName: tasks
+            baseColumnNames: author_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_tasks_author
+            onDelete: SET NULL
+            onUpdate: RESTRICT
+        - sql:
+            comment: "Добавляем constraint для проверки priority"
+            sql: |
+              ALTER TABLE tasks ADD CONSTRAINT valid_priority 
+              CHECK (priority IN ('HIGH', 'MEDIUM', 'LOW'));
