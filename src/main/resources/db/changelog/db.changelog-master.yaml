@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - logicalFilePath: src/main/resources/db/changelog/db.changelog-master.yaml
+  - include:
+      file: db/changelog/changes/01-create-users-table.yaml
+  - include:
+      file: db/changelog/changes/02-create-groups-table.yaml
+  - include:
+      file: db/changelog/changes/03-create-tasks-table.yaml
+  - include:
+      file: db/changelog/changes/04-create-tags-table.yaml
+  - include:
+      file: db/changelog/changes/05-create-scheduled-notifications-table.yaml
+  - include:
+      file: db/changelog/changes/06-create-task-files-table.yaml
+  - include:
+      file: db/changelog/changes/07-create-task-assignments-table.yaml
+  - include:
+      file: db/changelog/changes/08-create-task-tags-table.yaml
+  - include:
+      file: db/changelog/changes/09-create-user-groups-table.yaml
+  - include:
+      file: db/changelog/changes/10-create-video-meetings-table.yaml
+  - include:
+      file: db/changelog/changes/11-create-role-audit-log-table.yaml
+  - include:
+      file: db/changelog/changes/12-create-indexes.yaml
+#  - include:
+#      file: db/changelog/changes/13-insert-test-data.yaml

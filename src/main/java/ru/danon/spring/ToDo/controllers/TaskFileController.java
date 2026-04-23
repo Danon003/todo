@@ -9,13 +9,21 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import ru.danon.spring.ToDo.dto.TaskFileDTO;
-import ru.danon.spring.ToDo.models.TaskFile;
+import ru.danon.spring.ToDo.mappers.TaskFileMapper;
+import ru.danon.spring.ToDo.models.postgre.TaskFile;
 import ru.danon.spring.ToDo.services.TaskFileService;
 
 import java.util.List;
@@ -25,10 +33,11 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Task File Controller", description = "Управление файлами, прикрепленными к задачам")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
 public class TaskFileController {
 
     private final TaskFileService taskFileService;
-    private final ModelMapper modelMapper;
+    private final TaskFileMapper taskFileMapper;
 
     @PostMapping
     @Operation(summary = "Загрузить файл к задаче", description = "Прикрепляет файл к задаче")
@@ -44,7 +53,11 @@ public class TaskFileController {
             @Parameter(description = "Файл для загрузки", required = true)
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
-        TaskFileDTO taskFile = convertToTaskFileDTO(taskFileService.uploadTaskFile(taskId, file, authentication));
+        log.info("Запрос на загрузку файла к задаче id={} от пользователя: {}, файл: {}",
+                taskId, authentication.getName(), file.getOriginalFilename());
+        TaskFileDTO taskFile = taskFileMapper.toDTO(taskFileService.uploadTaskFile(taskId, file, authentication));
+        log.info("Файл {} успешно загружен к задаче id={}, fileId={}",
+                file.getOriginalFilename(), taskId, taskFile.getId());
         return ResponseEntity.ok(taskFile);
     }
 
@@ -57,10 +70,13 @@ public class TaskFileController {
     public ResponseEntity<List<TaskFileDTO>> getTaskFiles(
             @Parameter(description = "ID задачи", required = true)
             @PathVariable Integer taskId) {
-        return ResponseEntity.ok(taskFileService.getTaskFiles(taskId)
+        log.info("Запрос на получение файлов задачи id={}", taskId);
+        List<TaskFileDTO> files = taskFileService.getTaskFiles(taskId)
                 .stream()
-                .map(this::convertToTaskFileDTO)
-                .toList());
+                .map(taskFileMapper::toDTO)
+                .toList();
+        log.debug("Получено {} файлов для задачи id={}", files.size(), taskId);
+        return ResponseEntity.ok(files);
     }
 
     @DeleteMapping("/{fileId}")
@@ -74,7 +90,9 @@ public class TaskFileController {
             @PathVariable Integer taskId,
             @Parameter(description = "ID файла", required = true)
             @PathVariable Integer fileId) {
+        log.info("Запрос на удаление файла id={} из задачи id={}", fileId, taskId);
         taskFileService.deleteTaskFile(fileId);
+        log.info("Файл id={} успешно удален из задачи id={}", fileId, taskId);
         return ResponseEntity.noContent().build();
     }
 
@@ -90,11 +108,9 @@ public class TaskFileController {
             @PathVariable Integer fileId,
             @Parameter(description = "ID задачи", required = true)
             @PathVariable Integer taskId) {
+        log.info("Запрос на получение ссылки для скачивания файла id={} из задачи id={}", fileId, taskId);
         String downloadUrl = taskFileService.getFileDownloadUrl(fileId);
+        log.debug("Ссылка на скачивание файла id={} успешно сгенерирована", fileId);
         return ResponseEntity.ok(downloadUrl);
-    }
-
-    private TaskFileDTO convertToTaskFileDTO(TaskFile taskFile) {
-        return modelMapper.map(taskFile, TaskFileDTO.class);
     }
 }

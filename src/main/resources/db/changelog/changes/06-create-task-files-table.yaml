@@ -1,0 +1,76 @@
+databaseChangeLog:
+  - changeSet:
+      id: 6
+      author: your_name
+      changes:
+        - createTable:
+            tableName: task_files
+            remarks: "Таблица файлов задач"
+            columns:
+              - column:
+                  name: id
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "Уникальный идентификатор файла"
+              - column:
+                  name: task_id
+                  type: INT
+                  constraints:
+                    nullable: false
+                  remarks: "ID задачи"
+              - column:
+                  name: original_file_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                  remarks: "Оригинальное имя файла"
+              - column:
+                  name: stored_file_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                  remarks: "Сохраненное имя файла"
+              - column:
+                  name: file_path
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+                  remarks: "Путь к файлу"
+              - column:
+                  name: file_size
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                  remarks: "Размер файла в байтах"
+              - column:
+                  name: file_type
+                  type: VARCHAR(100)
+                  remarks: "MIME тип файла"
+              - column:
+                  name: uploaded_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+                  constraints:
+                    nullable: false
+                  remarks: "Время загрузки"
+              - column:
+                  name: uploaded_by
+                  type: INT
+                  remarks: "ID пользователя, загрузившего файл"
+        - addForeignKeyConstraint:
+            baseTableName: task_files
+            baseColumnNames: task_id
+            referencedTableName: tasks
+            referencedColumnNames: id
+            constraintName: fk_task_files_task
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: task_files
+            baseColumnNames: uploaded_by
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_task_files_uploader
+            onDelete: SET NULL

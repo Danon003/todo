@@ -81,14 +81,19 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- Flyway -->
+		<!-- Source: https://mvnrepository.com/artifact/org.liquibase/liquibase-core -->
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
+			<groupId>org.liquibase</groupId>
+			<artifactId>liquibase-core</artifactId>
+			<version>4.31.1</version>
+			<scope>compile</scope>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.liquibase/liquibase-maven-plugin -->
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-database-postgresql</artifactId>
+			<groupId>org.liquibase</groupId>
+			<artifactId>liquibase-maven-plugin</artifactId>
+			<version>4.33.0</version>
+			<scope>compile</scope>
 		</dependency>
 
 		<!-- OpenAPI/Swagger -->

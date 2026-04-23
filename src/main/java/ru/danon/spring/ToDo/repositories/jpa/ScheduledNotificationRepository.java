@@ -3,7 +3,7 @@ package ru.danon.spring.ToDo.repositories.jpa;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import ru.danon.spring.ToDo.models.ScheduledNotification;
+import ru.danon.spring.ToDo.models.postgre.ScheduledNotification;
 
 import java.time.LocalDateTime;
 import java.util.List;

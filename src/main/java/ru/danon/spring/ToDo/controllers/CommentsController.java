@@ -9,16 +9,24 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.CommentDTO;
 import ru.danon.spring.ToDo.dto.CommentRequest;
-import ru.danon.spring.ToDo.models.Comment;
+import ru.danon.spring.ToDo.exceptions.EntityNotFoundException;
+import ru.danon.spring.ToDo.mappers.CommentMapper;
 import ru.danon.spring.ToDo.services.CommentsService;
 import ru.danon.spring.ToDo.services.PeopleService;
 
@@ -29,11 +37,12 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Comments Controller", description = "Управление комментариями к задачам")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
 public class CommentsController {
 
     private final CommentsService commentsService;
     private final PeopleService peopleService;
-    private final ModelMapper modelMapper;
+    private final CommentMapper commentMapper;
 
     @GetMapping
     @Operation(summary = "Получить комментарии к задаче", description = "Возвращает страницу с комментариями для указанной задачи")
@@ -47,11 +56,11 @@ public class CommentsController {
             @PathVariable Integer taskId,
             @Parameter(description = "Параметры пагинации (size, page, sort)")
             @PageableDefault(size = 20) Pageable pageable) {
-        try {
-            return ResponseEntity.ok(commentsService.getTaskComments(taskId, pageable));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+
+        log.info("Запрос на получение комментариев к задаче id={}, page={}, size={}", taskId, pageable.getPageNumber(), pageable.getPageSize());
+        Page<CommentDTO> comments = commentsService.getTaskComments(taskId, pageable);
+        log.debug("Получено {} комментариев к задаче id={}", comments.getNumberOfElements(), taskId);
+        return ResponseEntity.ok(comments);
     }
 
     @PostMapping
@@ -68,11 +77,10 @@ public class CommentsController {
             @RequestBody CommentDTO commentDTO,
             Authentication auth) {
 
-        try {
-            return ResponseEntity.ok(commentsService.addComment(taskId, auth, commentDTO));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        log.info("Запрос на создание комментария к задаче id={} от пользователя: {}", taskId, auth.getName());
+        CommentDTO createdComment = commentsService.addComment(taskId, auth, commentDTO);
+        log.info("Комментарий успешно создан к задаче id={}, commentId={}", taskId, createdComment.getId());
+        return ResponseEntity.ok(createdComment);
     }
 
     @PutMapping("/{commentId}")
@@ -91,20 +99,22 @@ public class CommentsController {
             @RequestBody CommentRequest request,
             Authentication authentication) {
 
-        try {
-            var currentUser = peopleService.findByUsername(authentication.getName())
-                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        log.info("Запрос на обновление комментария id={} к задаче id={} от пользователя: {}", commentId, taskId, authentication.getName());
 
-            CommentDTO updatedComment = commentsService.updateComment(
-                    commentId,
-                    request.getContent(),
-                    currentUser.getId()
-            );
+        var currentUser = peopleService.findByUsername(authentication.getName())
+                .orElseThrow(() -> {
+                    log.error("Пользователь {} не найден при попытке обновления комментария", authentication.getName());
+                    return new RuntimeException("Пользователь не найден");
+                });
 
-            return ResponseEntity.ok(updatedComment);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        CommentDTO updatedComment = commentsService.updateComment(
+                commentId,
+                request.getContent(),
+                currentUser.getId()
+        );
+
+        log.info("Комментарий id={} успешно обновлен пользователем id={}", commentId, currentUser.getId());
+        return ResponseEntity.ok(updatedComment);
     }
 
     @DeleteMapping("/{commentId}")
@@ -120,19 +130,17 @@ public class CommentsController {
             @PathVariable String commentId,
             Authentication authentication) {
 
-        System.out.println("DELETE COMMENT - TaskId: " + taskId + ", CommentId: " + commentId);
-        System.out.println("Authentication: " + authentication.getName());
+        log.info("Запрос на удаление комментария id={} к задаче id={} от пользователя: {}", commentId, taskId, authentication.getName());
 
-        try {
-            var currentUser = peopleService.findByUsername(authentication.getName())
-                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        var currentUser = peopleService.findByUsername(authentication.getName())
+                .orElseThrow(() -> {
+                    log.error("Пользователь {} не найден при попытке удаления комментария", authentication.getName());
+                    return new EntityNotFoundException("Пользователь не найден");
+                });
 
-            commentsService.deleteComment(commentId, currentUser.getId(), currentUser.getRole());
-
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        commentsService.deleteComment(commentId, currentUser.getId(), currentUser.getRole());
+        log.info("Комментарий id={} успешно удален пользователем id={} с ролью {}", commentId, currentUser.getId(), currentUser.getRole());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{commentId}/replies")
@@ -148,18 +156,12 @@ public class CommentsController {
             @Parameter(description = "ID комментария", required = true)
             @PathVariable String commentId) {
 
-        try {
-            List<CommentDTO> replies = commentsService.getCommentReplies(commentId)
-                    .stream()
-                    .map(this::convertToCommentDTO)
-                    .toList();
-            return ResponseEntity.ok(replies);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    private CommentDTO convertToCommentDTO(Comment comment) {
-        return modelMapper.map(comment, CommentDTO.class);
+        log.info("Запрос на получение ответов к комментарию id={} задачи id={}", commentId, taskId);
+        List<CommentDTO> replies = commentsService.getCommentReplies(commentId)
+                .stream()
+                .map(commentMapper::toDTO)
+                .toList();
+        log.debug("Получено {} ответов к комментарию id={}", replies.size(), commentId);
+        return ResponseEntity.ok(replies);
     }
 }

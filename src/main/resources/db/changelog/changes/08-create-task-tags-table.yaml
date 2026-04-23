@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: 8
+      author: your_name
+      changes:
+        - createTable:
+            tableName: task_tags
+            remarks: "Связь задач с тегами (many-to-many)"
+            columns:
+              - column:
+                  name: task_id
+                  type: INT
+                  constraints:
+                    nullable: false
+                  remarks: "ID задачи"
+              - column:
+                  name: tag_id
+                  type: INT
+                  constraints:
+                    nullable: false
+                  remarks: "ID тега"
+        - addPrimaryKey:
+            tableName: task_tags
+            constraintName: pk_task_tags
+            columnNames: task_id, tag_id
+        - addForeignKeyConstraint:
+            baseTableName: task_tags
+            baseColumnNames: task_id
+            referencedTableName: tasks
+            referencedColumnNames: id
+            constraintName: fk_task_tags_task
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: task_tags
+            baseColumnNames: tag_id
+            referencedTableName: tags
+            referencedColumnNames: id
+            constraintName: fk_task_tags_tag
+            onDelete: CASCADE

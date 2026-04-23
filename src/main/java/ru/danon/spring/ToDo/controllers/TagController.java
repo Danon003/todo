@@ -8,29 +8,31 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.TagDTO;
-import ru.danon.spring.ToDo.repositories.jpa.TagRepository;
+import ru.danon.spring.ToDo.mappers.TagMapper;
+
 import ru.danon.spring.ToDo.services.TagService;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/tag")
 @Tag(name = "Tag Controller", description = "Управление тегами для задач")
 @SecurityRequirement(name = "bearerAuth")
+@Slf4j
 public class TagController {
-    private final TagService tagService;
-    private final TagRepository tagRepository;
 
-    @Autowired
-    public TagController(TagService tagService, TagRepository tagRepository) {
-        this.tagService = tagService;
-        this.tagRepository = tagRepository;
-    }
+    private final TagService tagService;
+    private final TagMapper tagMapper;
 
     @GetMapping
     @Operation(summary = "Получить все теги", description = "Возвращает список всех доступных тегов")
@@ -39,10 +41,10 @@ public class TagController {
                     content = @Content(schema = @Schema(implementation = TagDTO.class)))
     })
     public ResponseEntity<List<TagDTO>> getAllTags() {
-        List<ru.danon.spring.ToDo.models.Tag> tags = tagService.getAllTags();
-        List<TagDTO> tagDTOs = tags.stream()
-                .map(tag -> new TagDTO(tag.getId(), tag.getName()))
-                .collect(Collectors.toList());
+        log.info("Запрос на получение всех тегов");
+        List<ru.danon.spring.ToDo.models.postgre.Tag> tags = tagService.getAllTags();
+        List<TagDTO> tagDTOs = tagMapper.toDtoList(tags);
+        log.debug("Получено {} тегов", tagDTOs.size());
         return ResponseEntity.ok(tagDTOs);
     }
 
@@ -56,9 +58,12 @@ public class TagController {
     public ResponseEntity<TagDTO> createTag(
             @Parameter(description = "Данные тега", required = true)
             @RequestBody TagDTO tagDTO) {
-        ru.danon.spring.ToDo.models.Tag tag = new ru.danon.spring.ToDo.models.Tag();
-        tag.setName(tagDTO.getName());
+        log.info("Запрос на создание нового тега: {}", tagDTO.getName());
+
+        ru.danon.spring.ToDo.models.postgre.Tag tag = tagMapper.toEntity(tagDTO);
         tagService.createTag(tag);
-        return ResponseEntity.ok(new TagDTO(tag.getId(), tag.getName()));
+
+        log.info("Тег успешно создан: id={}, name={}", tag.getId(), tag.getName());
+        return ResponseEntity.ok(tagMapper.toDto(tag));
     }
 }
