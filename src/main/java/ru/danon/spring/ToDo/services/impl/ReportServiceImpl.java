@@ -57,7 +57,8 @@ public class ReportServiceImpl implements ReportService {
     private final UserGroupRepository userGroupRepository;
     private final CommentRepository commentRepository;
 
-    @Override public byte[] generateReport(ReportRequestDTO request) throws IOException {
+    @Override
+    public byte[] generateReport(ReportRequestDTO request) throws IOException {
         log.info("Генерация отчета: type={}, format={}, period={}",
                 request.getReportType(), request.getFormat(), request.getPeriod());
 

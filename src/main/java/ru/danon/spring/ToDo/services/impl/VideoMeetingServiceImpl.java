@@ -67,7 +67,9 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         this.cleanupAfterDays = cleanupAfterDays;
     }
 
-    @Transactional @Override public VideoMeetingDTO createMeeting(CreateVideoMeetingDTO createDTO, String username) {
+    @Transactional
+    @Override
+    public VideoMeetingDTO createMeeting(CreateVideoMeetingDTO createDTO, String username) {
         log.info("Создание видеовстречи пользователем: {}", username);
 
         Person creator = peopleRepository.findByUsername(username)
@@ -114,7 +116,8 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
     /**
      * Получает все встречи с учетом роли пользователя
      */
-    @Override public List<VideoMeetingDTO> getAllMeetings(Authentication authentication) {
+    @Override
+    public List<VideoMeetingDTO> getAllMeetings(Authentication authentication) {
         String username = authentication.getName();
         String role = authentication.getAuthorities().iterator().next().getAuthority();
         log.debug("Получение всех встреч для пользователя: {}, роль: {}", username, role);
@@ -146,7 +149,8 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
      * - встречи без группы (для всех)
      * - встречи группы студента
      */
-    @Override public List<VideoMeetingDTO> getMeetingsForStudent(String username) {
+    @Override
+    public List<VideoMeetingDTO> getMeetingsForStudent(String username) {
         log.debug("Получение встреч для студента: {}", username);
 
         try {
@@ -187,7 +191,8 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
     /**
      * Получает встречи созданные пользователем
      */
-    @Override public List<VideoMeetingDTO> getMeetingsByCreator(String username) {
+    @Override
+    public List<VideoMeetingDTO> getMeetingsByCreator(String username) {
         log.debug("Получение встреч созданных пользователем: {}", username);
 
         Person creator = peopleRepository.findByUsername(username)
@@ -214,7 +219,8 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
     }
 
 
-    @Override public String getJoinUrl(Long meetingId, String username, boolean isModerator) {
+    @Override
+    public String getJoinUrl(Long meetingId, String username, boolean isModerator) {
         log.debug("Получение ссылки для присоединения к встрече id={}, пользователь: {}, модератор: {}", meetingId, username, isModerator);
 
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
@@ -242,7 +248,9 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         return dto;
     }
 
-    @Transactional @Override public VideoMeetingDTO updateMeeting(Long meetingId, CreateVideoMeetingDTO updateDTO, String username) {
+    @Transactional
+    @Override
+    public VideoMeetingDTO updateMeeting(Long meetingId, CreateVideoMeetingDTO updateDTO, String username) {
         log.info("Обновление видеовстречи id={} пользователем: {}", meetingId, username);
 
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
@@ -287,7 +295,9 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         return convertToDTO(updatedMeeting);
     }
 
-    @Transactional @Override public void deleteMeeting(Long meetingId, String username) {
+    @Transactional
+    @Override
+    public void deleteMeeting(Long meetingId, String username) {
         log.info("Удаление видеовстречи id={} пользователем: {}", meetingId, username);
 
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
@@ -317,7 +327,8 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         log.info("Видеовстреча id={} помечена как неактивная", meetingId);
     }
 
-    @Override public List<VideoMeetingDTO> getAllMeetings() {
+    @Override
+    public List<VideoMeetingDTO> getAllMeetings() {
         log.debug("Получение всех активных встреч");
         List<VideoMeetingDTO> meetings = videoMeetingRepository.findAll().stream()
                 .filter(meeting -> meeting.getIsActive() != null && meeting.getIsActive())
@@ -327,7 +338,8 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         return meetings;
     }
 
-    @Override public List<VideoMeetingDTO> getMeetingsByGroup(Long groupId) {
+    @Override
+    public List<VideoMeetingDTO> getMeetingsByGroup(Long groupId) {
         log.debug("Получение встреч для группы id={}", groupId);
         List<VideoMeetingDTO> meetings = videoMeetingRepository.findActiveByGroupId(groupId).stream()
                 .map(this::convertToDTO)
@@ -336,7 +348,8 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         return meetings;
     }
 
-    @Override public VideoMeetingDTO getMeetingById(Long meetingId) {
+    @Override
+    public VideoMeetingDTO getMeetingById(Long meetingId) {
         log.debug("Получение встречи по id={}", meetingId);
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
                 .orElseThrow(() -> {
@@ -354,7 +367,9 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         return meeting.getStartTime() != null && meeting.getStartTime().isBefore(now);
     }
 
-    @Transactional @Override public void archiveExpiredMeetings() {
+    @Transactional
+    @Override
+    public void archiveExpiredMeetings() {
         if (cleanupAfterDays <= 0) {
             return;
         }
@@ -378,7 +393,9 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
     }
 
 
-    @Transactional @Override public void sendUpcomingMeetingReminders() {
+    @Transactional
+    @Override
+    public void sendUpcomingMeetingReminders() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime windowStart = now.plusMinutes(9);
         LocalDateTime windowEnd = now.plusMinutes(11);

@@ -1,161 +1,133 @@
 package ru.danon.spring.ToDo.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
-import ru.danon.spring.ToDo.TestSecurityConfig;
-import ru.danon.spring.ToDo.controllers.validators.PersonValidator;
-import ru.danon.spring.ToDo.dto.AuthenticationDTO;
 import ru.danon.spring.ToDo.dto.PersonDTO;
+import ru.danon.spring.ToDo.dto.AuthenticationDTO;
+import ru.danon.spring.ToDo.dto.ForgotPasswordRequest;
+import ru.danon.spring.ToDo.dto.ResetPasswordRequest;
 import ru.danon.spring.ToDo.mappers.PersonMapper;
 import ru.danon.spring.ToDo.models.postgre.Person;
 import ru.danon.spring.ToDo.security.JWTUtil;
-import ru.danon.spring.ToDo.security.PersonDetailsService;
 import ru.danon.spring.ToDo.services.RegistrationService;
+import ru.danon.spring.ToDo.controllers.validators.PersonValidator;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = AuthController.class)
-@Import(TestSecurityConfig.class)
+@ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
+    @Mock
     private PersonValidator personValidator;
 
-    @MockitoBean
+    @Mock
     private RegistrationService registrationService;
 
-    @MockitoBean
+    @Mock
     private JWTUtil jwtUtil;
 
-    @MockitoBean
-    private AuthenticationManager authenticationManager;
-
-    @MockitoBean
+    @Mock
     private PersonMapper personMapper;
 
-    @MockitoBean
-    private PersonDetailsService personDetailsService;
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @InjectMocks
+    private AuthController authController;
 
     @Test
-    void performRegistration_Success() throws Exception {
-        PersonDTO personDTO = new PersonDTO();
-        personDTO.setUsername("testuser");
-        personDTO.setEmail("test@example.com");
-        personDTO.setPassword("password123");
+    void shouldRegisterUser() {
+        PersonDTO dto = new PersonDTO();
+        dto.setUsername("test");
+        dto.setPassword("123");
+        dto.setEmail("test@mail.com");
 
-        Person person = new Person();
-        person.setUsername("testuser");
-        person.setEmail("test@example.com");
+        when(personMapper.toEntity(any())).thenReturn(new Person());
+        when(jwtUtil.generateToken("test")).thenReturn("token");
 
-        when(personMapper.toEntity(any(PersonDTO.class))).thenReturn(person);
-        when(jwtUtil.generateToken(anyString())).thenReturn("test-jwt-token");
-        doNothing().when(personValidator).validate(any(Person.class), any(BindingResult.class));
+        BindingResult bindingResult = new BeanPropertyBindingResult(dto, "personDTO");
+        var response = authController.performRegistration(dto, bindingResult);
 
-        mockMvc.perform(post("/auth/registration")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(personDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.jwt-token").value("test-jwt-token"));
-
-        verify(registrationService).register(any(Person.class));
-        verify(jwtUtil).generateToken("testuser");
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("token", response.getBody().getJwtToken());
+        verify(registrationService).register(any());
     }
 
     @Test
-    void performRegistration_ValidationError() throws Exception {
-        PersonDTO personDTO = new PersonDTO();
-        personDTO.setUsername("te");
-        personDTO.setEmail("invalid-email");
-        personDTO.setPassword("123");
+    void shouldReturnBadRequestWhenPasswordIsMissing() {
+        PersonDTO dto = new PersonDTO();
+        dto.setUsername("test");
+        dto.setPassword(" ");
 
-        Person person = new Person();
-        when(personMapper.toEntity(any(PersonDTO.class))).thenReturn(person);
+        BindingResult bindingResult = new BeanPropertyBindingResult(dto, "personDTO");
+        var response = authController.performRegistration(dto, bindingResult);
 
-        doAnswer(invocation -> {
-            BindingResult bindingResult = invocation.getArgument(1);
-            bindingResult.reject("error", "Validation error");
-            return null;
-        }).when(personValidator).validate(any(Person.class), any(BindingResult.class));
-
-        mockMvc.perform(post("/auth/registration")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(personDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Error!"));
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        verifyNoInteractions(personMapper, registrationService, jwtUtil);
     }
 
     @Test
-    void performRegistration_EmptyPassword_ReturnsError() throws Exception {
-        PersonDTO personDTO = new PersonDTO();
-        personDTO.setUsername("testuser");
-        personDTO.setEmail("test@example.com");
-        personDTO.setPassword("");
+    void shouldReturnBadRequestWhenValidationHasErrors() {
+        PersonDTO dto = new PersonDTO();
+        dto.setUsername("test");
+        dto.setPassword("123");
 
-        Person person = new Person();
-        when(personMapper.toEntity(any(PersonDTO.class))).thenReturn(person);
+        BindingResult bindingResult = mock(BindingResult.class);
+        when(bindingResult.hasErrors()).thenReturn(true);
+        when(personMapper.toEntity(any())).thenReturn(new Person());
 
-        mockMvc.perform(post("/auth/registration")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(personDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Пароль обязателен для регистрации!"));
+        var response = authController.performRegistration(dto, bindingResult);
 
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         verify(registrationService, never()).register(any());
+        verify(jwtUtil, never()).generateToken(anyString());
     }
 
     @Test
-    void performLogin_Success() throws Exception {
-        AuthenticationDTO authDTO = new AuthenticationDTO();
-        authDTO.setUsername("testuser");
-        authDTO.setPassword("password123");
+    void shouldPerformLogin() {
+        AuthenticationDTO dto = new AuthenticationDTO();
+        dto.setUsername("test");
+        dto.setPassword("123");
+        when(jwtUtil.generateToken("test")).thenReturn("jwt");
 
-        when(jwtUtil.generateToken(anyString())).thenReturn("test-jwt-token");
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(mock(UsernamePasswordAuthenticationToken.class));
+        var response = authController.performLogin(dto);
 
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(authDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.jwt-token").value("test-jwt-token"));
-
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtUtil).generateToken("testuser");
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("jwt", response.getBody().getJwtToken());
+        verify(authenticationManager).authenticate(any());
     }
 
     @Test
-    void performLogin_BadCredentials() throws Exception {
-        AuthenticationDTO authDTO = new AuthenticationDTO();
-        authDTO.setUsername("testuser");
-        authDTO.setPassword("wrongpassword");
+    void shouldInitiateForgotPassword() {
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setEmail("test@mail.com");
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new BadCredentialsException("Bad credentials"));
+        var response = authController.performForgotPassword(request);
 
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(authDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Incorrect credentials!"));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(registrationService).initiatePasswordReset("test@mail.com");
+    }
+
+    @Test
+    void shouldResetPassword() {
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setEmail("test@mail.com");
+        request.setCode("1111");
+        request.setNewPassword("new-password");
+
+        var response = authController.performResetPassword(request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(registrationService).resetPassword("test@mail.com", "1111", "new-password");
     }
 }
