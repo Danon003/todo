@@ -108,7 +108,7 @@ public class AdminController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
     public ResponseEntity<Void> deleteUser(@Parameter(description = "ID пользователя", required = true)
-                                           @PathVariable Integer userId) {
+                                           @PathVariable Long userId) {
         log.info("Запрос на удаление пользователя с id: {}", userId);
         peopleService.deleteById(userId);
         log.info("Пользователь с id {} успешно удален", userId);
@@ -127,7 +127,7 @@ public class AdminController {
             @Parameter(description = "Новая роль пользователя", required = true, example = "TEACHER")
             @RequestParam String role,
             @Parameter(description = "ID пользователя", required = true)
-            @PathVariable Integer userId) {
+            @PathVariable Long userId) {
 
         log.info("Запрос на изменение роли пользователя id={} на {}", userId, role);
         adminService.changeUserRole(userId, role.toUpperCase());
@@ -209,9 +209,9 @@ public class AdminController {
     })
     public ResponseEntity<Void> assignTeacherToGroup(
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId,
+            @PathVariable Long groupId,
             @Parameter(description = "ID преподавателя", required = true)
-            @PathVariable Integer teacherId) {
+            @PathVariable Long teacherId) {
 
         log.info("Запрос на назначение преподавателя id={} группе id={}", teacherId, groupId);
         adminService.assignTeacherToGroup(groupId, teacherId);

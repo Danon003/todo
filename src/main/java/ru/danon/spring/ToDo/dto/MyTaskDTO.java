@@ -7,20 +7,20 @@ import java.util.List;
 
 @Data
 public class MyTaskDTO {
-    private Integer id;
+    private Long id;
     private String title;
     private String description;
     private LocalDateTime deadline;
     private String priority;
-    private Integer authorId;
+    private Long authorId;
     private String userStatus;
     private List<TagDTO> tags;
-    private List<Integer> tagIds;
+    private List<Long> tagIds;
     private List<String> tagNames;
 
-    public MyTaskDTO(Integer id, String title, String description,
+    public MyTaskDTO(Long id, String title, String description,
                      LocalDateTime deadline, String priority,
-                     Integer authorId, String userStatus, List<TagDTO> tags) {
+                     Long authorId, String userStatus, List<TagDTO> tags) {
         this.id = id;
         this.title = title;
         this.description = description;

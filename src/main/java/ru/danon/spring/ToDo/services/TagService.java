@@ -15,17 +15,17 @@ public interface TagService {
     void createTag(Tag tag);
 
     @Transactional
-    void addTagToTask(Integer taskId, Integer tagId);
+    void addTagToTask(Long taskId, Long tagId);
 
     @Transactional
-    void addTagToTaskByName(Integer taskId, String name);
+    void addTagToTaskByName(Long taskId, String name);
 
     @Transactional
-    void removeTagFromTask(Integer taskId, Integer tagId);
+    void removeTagFromTask(Long taskId, Long tagId);
 
-    List<Tag> getTaskTags(Integer taskId);
+    List<Tag> getTaskTags(Long taskId);
 
-    Map<Integer, List<Tag>> getTaskTagsBatch(Collection<Integer> taskIds);
+    Map<Long, List<Tag>> getTaskTagsBatch(Collection<Long> taskIds);
 
     List<Task> getTaskByTag(String tagName);
 }

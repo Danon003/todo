@@ -28,7 +28,7 @@ public class TaskFileServiceImpl implements TaskFileService {
     private final PeopleService peopleService;
     private final TaskRepository taskRepository;
 
-    @Transactional @Override public TaskFile uploadTaskFile(Integer taskId, MultipartFile file, Authentication authentication) {
+    @Transactional @Override public TaskFile uploadTaskFile(Long taskId, MultipartFile file, Authentication authentication) {
         log.info("Загрузка файла к задаче id={} от пользователя: {}", taskId, authentication.getName());
 
         Person user = peopleService.findByUsername(authentication.getName()).orElseThrow(
@@ -60,14 +60,14 @@ public class TaskFileServiceImpl implements TaskFileService {
         return savedFile;
     }
 
-    @Override public List<TaskFile> getTaskFiles(Integer taskId) {
+    @Override public List<TaskFile> getTaskFiles(Long taskId) {
         log.debug("Получение файлов задачи id={}", taskId);
         List<TaskFile> files = taskFileRepository.findByTaskId(taskId);
         log.debug("Найдено {} файлов для задачи id={}", files.size(), taskId);
         return files;
     }
 
-    @Transactional @Override public void deleteTaskFile(Integer fileId) {
+    @Transactional @Override public void deleteTaskFile(Long fileId) {
         log.info("Удаление файла задачи id={}", fileId);
 
         TaskFile taskFile = taskFileRepository.findById(fileId)
@@ -84,7 +84,7 @@ public class TaskFileServiceImpl implements TaskFileService {
         log.info("Файл задачи id={} успешно удален", fileId);
     }
 
-    @Override public String getFileDownloadUrl(Integer fileId) {
+    @Override public String getFileDownloadUrl(Long fileId) {
         log.debug("Получение ссылки для скачивания файла id={}", fileId);
 
         TaskFile taskFile = taskFileRepository.findById(fileId)

@@ -49,7 +49,7 @@ public class TaskFileController {
     })
     public ResponseEntity<TaskFileDTO> uploadTaskFile(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "Файл для загрузки", required = true)
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
@@ -69,7 +69,7 @@ public class TaskFileController {
     })
     public ResponseEntity<List<TaskFileDTO>> getTaskFiles(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId) {
+            @PathVariable Long taskId) {
         log.info("Запрос на получение файлов задачи id={}", taskId);
         List<TaskFileDTO> files = taskFileService.getTaskFiles(taskId)
                 .stream()
@@ -87,9 +87,9 @@ public class TaskFileController {
     })
     public ResponseEntity<Void> deleteTaskFile(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "ID файла", required = true)
-            @PathVariable Integer fileId) {
+            @PathVariable Long fileId) {
         log.info("Запрос на удаление файла id={} из задачи id={}", fileId, taskId);
         taskFileService.deleteTaskFile(fileId);
         log.info("Файл id={} успешно удален из задачи id={}", fileId, taskId);
@@ -105,9 +105,9 @@ public class TaskFileController {
     })
     public ResponseEntity<String> getDownloadUrl(
             @Parameter(description = "ID файла", required = true)
-            @PathVariable Integer fileId,
+            @PathVariable Long fileId,
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId) {
+            @PathVariable Long taskId) {
         log.info("Запрос на получение ссылки для скачивания файла id={} из задачи id={}", fileId, taskId);
         String downloadUrl = taskFileService.getFileDownloadUrl(fileId);
         log.debug("Ссылка на скачивание файла id={} успешно сгенерирована", fileId);

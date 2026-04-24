@@ -9,12 +9,12 @@ import java.util.List;
 
 public interface TaskFileService {
     @Transactional
-    TaskFile uploadTaskFile(Integer taskId, MultipartFile file, Authentication authentication);
+    TaskFile uploadTaskFile(Long taskId, MultipartFile file, Authentication authentication);
 
-    List<TaskFile> getTaskFiles(Integer taskId);
+    List<TaskFile> getTaskFiles(Long taskId);
 
     @Transactional
-    void deleteTaskFile(Integer fileId);
+    void deleteTaskFile(Long fileId);
 
-    String getFileDownloadUrl(Integer fileId);
+    String getFileDownloadUrl(Long fileId);
 }

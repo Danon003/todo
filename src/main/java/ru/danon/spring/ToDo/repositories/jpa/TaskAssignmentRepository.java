@@ -30,15 +30,15 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
     @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
     @Query("SELECT ta FROM TaskAssignment ta WHERE ta.user.id = :userId AND ta.task.id = :taskId")
-    Optional<TaskAssignment> findByUserIdAndTaskId(@Param("userId") Integer userId,
-                                                   @Param("taskId") Integer taskId);
+    Optional<TaskAssignment> findByUserIdAndTaskId(@Param("userId") Long userId,
+                                                   @Param("taskId") Long taskId);
 
     @Query("SELECT ta FROM TaskAssignment ta JOIN ta.user u JOIN UserGroup ug ON u.id = ug.user.id " +
             "WHERE ug.group.id = :groupId AND ta.task.id = :taskId")
-    List<TaskAssignment> findByGroupIdAndTaskId(@Param("groupId") Integer groupId,
-                                                @Param("taskId") Integer taskId);
+    List<TaskAssignment> findByGroupIdAndTaskId(@Param("groupId") Long groupId,
+                                                @Param("taskId") Long taskId);
 
-    void deleteByTaskId(Integer taskId);
+    void deleteByTaskId(Long taskId);
 
     boolean existsByTaskAndUser(Task task, Person user);
 
@@ -62,16 +62,16 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
             @Param("now") LocalDateTime now
     );
     @EntityGraph(attributePaths = {"user"})
-    List<TaskAssignment> findByTaskId(Integer taskId);
+    List<TaskAssignment> findByTaskId(Long taskId);
 
     @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
-    List<TaskAssignment> findByUserId(Integer userId);
+    List<TaskAssignment> findByUserId(Long userId);
 
     @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
-    List<TaskAssignment> findByUserIdIn(Collection<Integer> userIds);
+    List<TaskAssignment> findByUserIdIn(Collection<Long> userIds);
 
     @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE ta.assignedBy.id = :teacherId AND ta.status != 'COMPLETED' AND ta.status != 'OVERDUE' AND ta.updated_At < :twoWeeksAgo")
-    List<TaskAssignment> findStuckByTeacherId(@Param("teacherId") Integer teacherId, @Param("twoWeeksAgo") LocalDateTime twoWeeksAgo);
+    List<TaskAssignment> findStuckByTeacherId(@Param("teacherId") Long teacherId, @Param("twoWeeksAgo") LocalDateTime twoWeeksAgo);
 
     @Query("SELECT COUNT(ta) > 0 FROM TaskAssignment ta " +
             "JOIN ta.task t " +
@@ -79,6 +79,6 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
             "AND ta.userId = :userId " +
             "AND ta.status NOT IN ('COMPLETED', 'OVERDUE') " +
             "AND t.deadline > :now")
-    boolean existsValidTaskForNotification(@Param("taskId") Integer taskId,
-                                           @Param("userId") Integer userId,
+    boolean existsValidTaskForNotification(@Param("taskId") Long taskId,
+                                           @Param("userId") Long userId,
                                            @Param("now") LocalDateTime now);}

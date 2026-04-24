@@ -72,7 +72,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Transactional
     @Override
-    public void changeUserRole(Integer userId, String newRole) {
+    public void changeUserRole(Long userId, String newRole) {
         log.info("Изменение роли пользователя id={} на {}", userId, newRole);
 
         Person user = peopleService.findById(userId).orElseThrow(
@@ -100,7 +100,7 @@ public class AdminServiceImpl implements AdminService {
 
         if(user.getRole().equals("ROLE_STUDENT")){
             log.debug("Пользователь id={} был STUDENT, удаляем из группы", userId);
-            Integer groupId = groupServiceImpl.getUserGroup(user.getUsername());
+            Long groupId = groupServiceImpl.getUserGroup(user.getUsername());
             if (groupId != null) {
                 groupServiceImpl.removeStudentFromGroup(groupId, userId);
                 log.debug("Студент id={} удален из группы id={}", userId, groupId);
@@ -124,7 +124,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Transactional
     @Override
-    public void assignTeacherToGroup(Integer groupId, Integer userId) {
+    public void assignTeacherToGroup(Long groupId, Long userId) {
         log.info("Назначение преподавателя id={} группе id={}", userId, groupId);
 
         Group group = groupRepository.findById(groupId).orElseThrow(() -> {
@@ -158,7 +158,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Transactional
     @Override
-    public Person createTeacher(Integer id) {
+    public Person createTeacher(Long id) {
         log.info("Назначение пользователя id={} преподавателем", id);
 
         Person teacher = peopleService.findById(id).orElseThrow(

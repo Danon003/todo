@@ -53,7 +53,7 @@ public class CommentsController {
     })
     public ResponseEntity<Page<CommentDTO>> getComments(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "Параметры пагинации (size, page, sort)")
             @PageableDefault(size = 20) Pageable pageable) {
 
@@ -72,7 +72,7 @@ public class CommentsController {
     })
     public ResponseEntity<CommentDTO> createComment(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "Данные комментария", required = true)
             @RequestBody CommentDTO commentDTO,
             Authentication auth) {

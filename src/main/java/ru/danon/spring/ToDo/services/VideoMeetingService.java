@@ -17,19 +17,19 @@ public interface VideoMeetingService {
 
     List<VideoMeetingDTO> getMeetingsByCreator(String username);
 
-    String getJoinUrl(Integer meetingId, String username, boolean isModerator);
+    String getJoinUrl(Long meetingId, String username, boolean isModerator);
 
     @Transactional
-    VideoMeetingDTO updateMeeting(Integer meetingId, CreateVideoMeetingDTO updateDTO, String username);
+    VideoMeetingDTO updateMeeting(Long meetingId, CreateVideoMeetingDTO updateDTO, String username);
 
     @Transactional
-    void deleteMeeting(Integer meetingId, String username);
+    void deleteMeeting(Long meetingId, String username);
 
     List<VideoMeetingDTO> getAllMeetings();
 
-    List<VideoMeetingDTO> getMeetingsByGroup(Integer groupId);
+    List<VideoMeetingDTO> getMeetingsByGroup(Long groupId);
 
-    VideoMeetingDTO getMeetingById(Integer meetingId);
+    VideoMeetingDTO getMeetingById(Long meetingId);
 
     @Transactional
     void archiveExpiredMeetings();
@@ -38,7 +38,7 @@ public interface VideoMeetingService {
     void sendUpcomingMeetingReminders();
 
     @Transactional
-    void completeMeeting(Integer meetingId, String username);
+    void completeMeeting(Long meetingId, String username);
 
     String getEmbedUrl(String meetingId, String userName, boolean isModerator);
 }

@@ -153,7 +153,7 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
             Person student = peopleRepository.findByUsername(username)
                     .orElseThrow(() -> new EntityNotFoundException("Студент не найден: ", username));
 
-            Integer studentGroupId = getStudentGroupId(student);
+            Long studentGroupId = getStudentGroupId(student);
 
             List<VideoMeeting> meetings = videoMeetingRepository.findByIsActiveTrueAndGroupIdOrGroupIsNull(studentGroupId);
             log.debug("Студент {} видит {} встреч (groupId={})", username, meetings.size(), studentGroupId);
@@ -174,9 +174,9 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
     /**
      * Получает ID группы студента
      */
-    private Integer getStudentGroupId(Person student) {
+    private Long getStudentGroupId(Person student) {
         try {
-            Integer groupId = groupServiceImpl.getUserGroup(student.getUsername());
+            Long groupId = groupServiceImpl.getUserGroup(student.getUsername());
             return groupId;
         } catch (Exception e) {
             log.error("Ошибка получения группы студента {}: {}", student.getUsername(), e.getMessage());
@@ -214,7 +214,7 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
     }
 
 
-    @Override public String getJoinUrl(Integer meetingId, String username, boolean isModerator) {
+    @Override public String getJoinUrl(Long meetingId, String username, boolean isModerator) {
         log.debug("Получение ссылки для присоединения к встрече id={}, пользователь: {}, модератор: {}", meetingId, username, isModerator);
 
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
@@ -242,7 +242,7 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         return dto;
     }
 
-    @Transactional @Override public VideoMeetingDTO updateMeeting(Integer meetingId, CreateVideoMeetingDTO updateDTO, String username) {
+    @Transactional @Override public VideoMeetingDTO updateMeeting(Long meetingId, CreateVideoMeetingDTO updateDTO, String username) {
         log.info("Обновление видеовстречи id={} пользователем: {}", meetingId, username);
 
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
@@ -287,7 +287,7 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         return convertToDTO(updatedMeeting);
     }
 
-    @Transactional @Override public void deleteMeeting(Integer meetingId, String username) {
+    @Transactional @Override public void deleteMeeting(Long meetingId, String username) {
         log.info("Удаление видеовстречи id={} пользователем: {}", meetingId, username);
 
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
@@ -327,7 +327,7 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         return meetings;
     }
 
-    @Override public List<VideoMeetingDTO> getMeetingsByGroup(Integer groupId) {
+    @Override public List<VideoMeetingDTO> getMeetingsByGroup(Long groupId) {
         log.debug("Получение встреч для группы id={}", groupId);
         List<VideoMeetingDTO> meetings = videoMeetingRepository.findActiveByGroupId(groupId).stream()
                 .map(this::convertToDTO)
@@ -336,7 +336,7 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
         return meetings;
     }
 
-    @Override public VideoMeetingDTO getMeetingById(Integer meetingId) {
+    @Override public VideoMeetingDTO getMeetingById(Long meetingId) {
         log.debug("Получение встречи по id={}", meetingId);
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
                 .orElseThrow(() -> {
@@ -432,10 +432,10 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
     }
 
     private List<Person> resolveMeetingParticipants(VideoMeeting meeting) {
-        Set<Integer> seenIds = new HashSet<>();
+        Set<Long> seenIds = new HashSet<>();
         List<Person> participants = new ArrayList<>();
 
-        Integer groupId = meeting.getGroup() != null ? meeting.getGroup().getId() : null;
+        Long groupId = meeting.getGroup() != null ? meeting.getGroup().getId() : null;
         if (groupId != null) {
             participants.addAll(groupServiceImpl.getPersonsByGroupId(groupId));
         } else {
@@ -454,7 +454,7 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
 
     @Transactional
     @Override
-    public void completeMeeting(Integer meetingId, String username) {
+    public void completeMeeting(Long meetingId, String username) {
         log.info("Завершение встречи id={} пользователем: {}", meetingId, username);
 
         VideoMeeting meeting = videoMeetingRepository.findById(meetingId)
@@ -492,7 +492,7 @@ public class VideoMeetingServiceImpl implements VideoMeetingService {
 
     @Override
     public String getEmbedUrl(String meetingId, String userName, boolean isModerator) {
-        VideoMeeting meeting = videoMeetingRepository.findById(Integer.valueOf(meetingId))
+        VideoMeeting meeting = videoMeetingRepository.findById(Long.getLong(meetingId))
                 .orElseThrow(() -> new EntityNotFoundException("Видеовстреча не найдена", meetingId));
 
         return generateJitsiEmbedUrl(meeting.getMeetingId(), userName, isModerator);

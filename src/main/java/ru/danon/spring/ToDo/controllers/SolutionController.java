@@ -48,7 +48,7 @@ public class SolutionController {
     })
     public ResponseEntity<Void> uploadSolution(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "Файл решения", required = true)
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
@@ -68,7 +68,7 @@ public class SolutionController {
     })
     public ResponseEntity<String> getSolutionDownloadUrl(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication authentication) {
 
         log.info("Запрос на получение ссылки для скачивания решения к задаче id={} от пользователя: {}",
@@ -86,7 +86,7 @@ public class SolutionController {
     })
     public ResponseEntity<Void> deleteSolution(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication authentication) {
 
         log.info("Запрос на удаление решения к задаче id={} от пользователя: {}", taskId, authentication.getName());
@@ -105,7 +105,7 @@ public class SolutionController {
     })
     public ResponseEntity<List<SolutionDTO>> getAllSolutions(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication authentication) {
         log.info("Запрос на получение всех решений к задаче id={} от преподавателя: {}",
                 taskId, authentication.getName());
@@ -123,9 +123,9 @@ public class SolutionController {
     })
     public ResponseEntity<Void> gradeSolution(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "ID студента", required = true)
-            @PathVariable Integer studentId,
+            @PathVariable Long studentId,
             @Parameter(description = "Данные оценки", required = true)
             @RequestBody GradeRequest gradeRequest,
             Authentication authentication) {
@@ -151,9 +151,9 @@ public class SolutionController {
     })
     public ResponseEntity<String> getStudentSolutionDownloadUrl(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "ID студента", required = true)
-            @PathVariable Integer studentId,
+            @PathVariable Long studentId,
             Authentication authentication) {
 
         log.info("Запрос на скачивание решения студента id={} к задаче id={} от преподавателя: {}",
@@ -172,7 +172,7 @@ public class SolutionController {
     })
     public ResponseEntity<SolutionDTO> getStudentSolution(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication auth) {
         log.info("Запрос на получение информации о решении к задаче id={} от пользователя: {}",
                 taskId, auth.getName());

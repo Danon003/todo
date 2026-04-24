@@ -48,7 +48,7 @@ public class TagServiceImpl implements TagService {
         log.info("Тег успешно создан: id={}, name={}", savedTag.getId(), savedTag.getName());
     }
 
-    @Transactional @Override public void addTagToTask(Integer taskId, Integer tagId) {
+    @Transactional @Override public void addTagToTask(Long taskId, Long tagId) {
         if (taskTagRepository.existsByTaskIdAndTagId(taskId, tagId)) {
             log.debug("Тег id={} уже привязан к задаче id={}", tagId, taskId);
             return;
@@ -63,7 +63,7 @@ public class TagServiceImpl implements TagService {
         log.debug("Тег id={} успешно добавлен к задаче id={}", tagId, taskId);
     }
 
-    @Transactional @Override public void addTagToTaskByName(Integer taskId, String name) {
+    @Transactional @Override public void addTagToTaskByName(Long taskId, String name) {
         log.debug("Добавление тега '{}' к задаче id={}", name, taskId);
 
         Task task = taskRepository.findById(taskId)
@@ -95,13 +95,13 @@ public class TagServiceImpl implements TagService {
         log.debug("Тег '{}' успешно добавлен к задаче id={}", name, taskId);
     }
 
-    @Transactional @Override public void removeTagFromTask(Integer taskId, Integer tagId) {
+    @Transactional @Override public void removeTagFromTask(Long taskId, Long tagId) {
         log.debug("Удаление тега id={} из задачи id={}", tagId, taskId);
         taskTagRepository.deleteByTaskIdAndTagId(tagId, taskId);
         log.debug("Тег id={} успешно удален из задачи id={}", tagId, taskId);
     }
 
-    @Override public List<Tag> getTaskTags(Integer taskId) {
+    @Override public List<Tag> getTaskTags(Long taskId) {
         log.debug("Получение тегов задачи id={}", taskId);
         try {
             List<Tag> tags = taskTagRepository.findTaskTagsWithTagsByTaskId(taskId)
@@ -116,13 +116,13 @@ public class TagServiceImpl implements TagService {
         }
     }
 
-    @Override public Map<Integer, List<Tag>> getTaskTagsBatch(Collection<Integer> taskIds) {
+    @Override public Map<Long, List<Tag>> getTaskTagsBatch(Collection<Long> taskIds) {
         if (taskIds == null || taskIds.isEmpty()) {
             return Collections.emptyMap();
         }
 
         log.debug("Пакетное получение тегов для {} задач", taskIds.size());
-        Map<Integer, List<Tag>> result = taskTagRepository.findTaskTagsWithTagsByTaskIds(taskIds).stream()
+        Map<Long, List<Tag>> result = taskTagRepository.findTaskTagsWithTagsByTaskIds(taskIds).stream()
                 .filter(taskTag -> taskTag.getTaskId() != null && taskTag.getTag() != null)
                 .collect(Collectors.groupingBy(
                         TaskTag::getTaskId,

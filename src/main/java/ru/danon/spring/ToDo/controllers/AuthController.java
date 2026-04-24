@@ -29,8 +29,6 @@ import ru.danon.spring.ToDo.security.JWTUtil;
 import ru.danon.spring.ToDo.services.RegistrationService;
 import ru.danon.spring.ToDo.controllers.validators.PersonValidator;
 
-import java.util.Map;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")

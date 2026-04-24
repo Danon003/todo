@@ -1,0 +1,53 @@
+databaseChangeLog:
+  - changeSet:
+      id: "v1.0.0_create_task_tags_table-01"
+      author: danon
+      comment: "Create task_tags junction table"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                schemaName: "task_tracker"
+                tableName: "task_tags"
+      changes:
+        - createTable:
+            schemaName: "task_tracker"
+            tableName: "task_tags"
+            remarks: "Связь задач с тегами (many-to-many)"
+            columns:
+              - column:
+                  name: "task_id"
+                  type: "BIGINT"
+                  constraints:
+                    nullable: false
+                  remarks: "ID задачи"
+              - column:
+                  name: "tag_id"
+                  type: "BIGINT"
+                  constraints:
+                    nullable: false
+                  remarks: "ID тега"
+        - addPrimaryKey:
+            tableName: "task_tags"
+            constraintName: "pk_task_tags"
+            columnNames: "task_id, tag_id"
+        - addForeignKeyConstraint:
+            baseTableName: "task_tags"
+            baseColumnNames: "task_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "tasks"
+            referencedColumnNames: "id"
+            constraintName: "fk_task_tags_task"
+            onDelete: "CASCADE"
+        - addForeignKeyConstraint:
+            baseTableName: "task_tags"
+            baseColumnNames: "tag_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "tags"
+            referencedColumnNames: "id"
+            constraintName: "fk_task_tags_tag"
+            onDelete: "CASCADE"
+      rollback:
+        - dropTable:
+            schemaName: "task_tracker"
+            tableName: "task_tags"

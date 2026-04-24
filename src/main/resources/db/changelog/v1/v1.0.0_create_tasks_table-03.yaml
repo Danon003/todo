@@ -1,0 +1,104 @@
+databaseChangeLog:
+  - changeSet:
+      id: "v1.0.0_create_tasks_table-01"
+      author: danon
+      comment: "Create tasks table"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                schemaName: "task_tracker"
+                tableName: "tasks"
+      changes:
+        - createTable:
+            schemaName: "task_tracker"
+            tableName: "tasks"
+            remarks: "Таблица задач"
+            columns:
+              - column:
+                  name: "id"
+                  type: "BIGINT"
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "Уникальный идентификатор задачи"
+              - column:
+                  name: "title"
+                  type: "VARCHAR(255)"
+                  constraints:
+                    nullable: false
+                  remarks: "Название задачи"
+              - column:
+                  name: "description"
+                  type: "TEXT"
+                  remarks: "Описание задачи"
+              - column:
+                  name: "deadline"
+                  type: "TIMESTAMP"
+                  remarks: "Дедлайн задачи"
+              - column:
+                  name: "priority"
+                  type: "VARCHAR(255)"
+                  constraints:
+                    nullable: false
+                  remarks: "Приоритет: HIGH, MEDIUM, LOW"
+              - column:
+                  name: "author_id"
+                  type: "BIGINT"
+                  remarks: "ID автора задачи"
+              - column:
+                  name: "created_at"
+                  type: "TIMESTAMP"
+                  remarks: "Дата создания задачи"
+        - addForeignKeyConstraint:
+            baseTableName: "tasks"
+            baseColumnNames: "author_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "users"
+            referencedColumnNames: "id"
+            constraintName: "fk_tasks_author"
+            onDelete: "SET NULL"
+            onUpdate: "RESTRICT"
+      rollback:
+        - dropTable:
+            schemaName: "task_tracker"
+            tableName: "tasks"
+
+  - changeSet:
+      id: "v1.0.0_create_tasks_table-02"
+      author: danon
+      comment: "Add priority check constraint to tasks table"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            schemaName: "task_tracker"
+            tableName: "tasks"
+      changes:
+        - sql:
+            sql: "ALTER TABLE task_tracker.tasks ADD CONSTRAINT valid_priority CHECK (priority IN ('HIGH', 'MEDIUM', 'LOW'))"
+      rollback:
+        - sql:
+            sql: "ALTER TABLE task_tracker.tasks DROP CONSTRAINT IF EXISTS valid_priority"
+
+  - changeSet:
+      id: "v1.0.0_create_tasks_table-03"
+      author: danon
+      comment: "Create index on tasks.deadline"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            schemaName: "task_tracker"
+            tableName: "tasks"
+      changes:
+        - createIndex:
+            indexName: "idx_tasks_deadline"
+            tableName: "tasks"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "deadline" }
+      rollback:
+        - dropIndex:
+            indexName: "idx_tasks_deadline"
+            tableName: "tasks"
+            schemaName: "task_tracker"

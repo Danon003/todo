@@ -1,28 +1,30 @@
 databaseChangeLog:
   - logicalFilePath: src/main/resources/db/changelog/db.changelog-master.yaml
+
+  # Version 1 - Initial schema
   - include:
-      file: db/changelog/changes/01-create-users-table.yaml
+      file: db/changelog/v1/v1.0.0_create_users_table-01.yaml
   - include:
-      file: db/changelog/changes/02-create-groups-table.yaml
+      file: db/changelog/v1/v1.0.0_create_groups_table-02.yaml
   - include:
-      file: db/changelog/changes/03-create-tasks-table.yaml
+      file: db/changelog/v1/v1.0.0_create_tasks_table-03.yaml
   - include:
-      file: db/changelog/changes/04-create-tags-table.yaml
+      file: db/changelog/v1/v1.0.0_create_tags_table-04.yaml
   - include:
-      file: db/changelog/changes/05-create-scheduled-notifications-table.yaml
+      file: db/changelog/v1/v1.0.0_create_scheduled_notifications_table-05.yaml
   - include:
-      file: db/changelog/changes/06-create-task-files-table.yaml
+      file: db/changelog/v1/v1.0.0_create_task_files_table-06.yaml
   - include:
-      file: db/changelog/changes/07-create-task-assignments-table.yaml
+      file: db/changelog/v1/v1.0.0_create_task_assignments_table-07.yaml
   - include:
-      file: db/changelog/changes/08-create-task-tags-table.yaml
+      file: db/changelog/v1/v1.0.0_create_task_tags_table-08.yaml
   - include:
-      file: db/changelog/changes/09-create-user-groups-table.yaml
+      file: db/changelog/v1/v1.0.0_create_user_groups_table-09.yaml
   - include:
-      file: db/changelog/changes/10-create-video-meetings-table.yaml
+      file: db/changelog/v1/v1.0.0_create_video_meetings_table-10.yaml
   - include:
-      file: db/changelog/changes/11-create-role-audit-log-table.yaml
+      file: db/changelog/v1/v1.0.0_create_role_audit_log_table-11.yaml
   - include:
-      file: db/changelog/changes/12-create-indexes.yaml
-#  - include:
-#      file: db/changelog/changes/13-insert-test-data.yaml
+      file: db/changelog/v1/v1.0.0_insert_test_data-12.yaml
+
+  # Version 2 - Future changes

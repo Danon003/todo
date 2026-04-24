@@ -7,7 +7,7 @@ import ru.danon.spring.ToDo.models.postgre.TaskFile;
 import java.util.List;
 
 @Repository
-public interface TaskFileRepository extends JpaRepository<TaskFile, Integer> {
-    List<TaskFile> findByTaskId(Integer taskId);
-    void deleteByTaskId(Integer taskId);
+public interface TaskFileRepository extends JpaRepository<TaskFile, Long> {
+    List<TaskFile> findByTaskId(Long taskId);
+    void deleteByTaskId(Long taskId);
 }

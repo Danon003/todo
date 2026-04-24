@@ -88,7 +88,7 @@ public class VideoMeetingController {
     })
     public ResponseEntity<List<VideoMeetingDTO>> getMeetingsByGroup(
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId) {
+            @PathVariable Long groupId) {
         log.info("Запрос на получение встреч для группы id={}", groupId);
         List<VideoMeetingDTO> meetings = videoMeetingService.getMeetingsByGroup(groupId);
         log.debug("Найдено {} встреч для группы id={}", meetings.size(), groupId);
@@ -104,7 +104,7 @@ public class VideoMeetingController {
     })
     public ResponseEntity<VideoMeetingDTO> getMeetingById(
             @Parameter(description = "ID встречи", required = true)
-            @PathVariable Integer meetingId) {
+            @PathVariable Long meetingId) {
         log.info("Запрос на получение информации о встрече id={}", meetingId);
         VideoMeetingDTO meeting = videoMeetingService.getMeetingById(meetingId);
         log.debug("Информация о встрече id={} успешно получена", meetingId);
@@ -144,7 +144,7 @@ public class VideoMeetingController {
     })
     public ResponseEntity<VideoMeetingDTO> updateMeeting(
             @Parameter(description = "ID встречи", required = true)
-            @PathVariable Integer meetingId,
+            @PathVariable Long meetingId,
             @Parameter(description = "Обновленные данные встречи", required = true)
             @Valid @RequestBody CreateVideoMeetingDTO updateDTO,
             Authentication authentication) {
@@ -165,7 +165,7 @@ public class VideoMeetingController {
     })
     public ResponseEntity<MessageResponseDTO> deleteMeeting(
             @Parameter(description = "ID встречи", required = true)
-            @PathVariable Integer meetingId,
+            @PathVariable Long meetingId,
             Authentication authentication) {
 
         log.info("Запрос на удаление встречи id={} от пользователя: {}", meetingId, authentication.getName());
@@ -184,7 +184,7 @@ public class VideoMeetingController {
     })
     public ResponseEntity<JoinUrlResponseDTO> getJoinUrl(
             @Parameter(description = "ID встречи", required = true)
-            @PathVariable Integer meetingId,
+            @PathVariable Long meetingId,
             Authentication authentication) {
 
         String username = authentication.getName();
@@ -207,7 +207,7 @@ public class VideoMeetingController {
     })
     public ResponseEntity<EmbedInfoResponseDTO> getMeetingEmbedInfo(
             @Parameter(description = "ID встречи", required = true)
-            @PathVariable Integer meetingId,
+            @PathVariable Long meetingId,
             Authentication authentication) {
 
         VideoMeetingDTO meeting = videoMeetingService.getMeetingById(meetingId);
@@ -241,7 +241,7 @@ public class VideoMeetingController {
     })
     public ResponseEntity<MessageResponseDTO> completeMeeting(
             @Parameter(description = "ID встречи", required = true)
-            @PathVariable Integer meetingId,
+            @PathVariable Long meetingId,
             Authentication authentication) {
 
         String username = authentication.getName();

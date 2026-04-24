@@ -82,7 +82,7 @@ public class UserController {
     })
     public ResponseEntity<AboutUserResponseDTO> getAboutUser(
             @Parameter(description = "ID пользователя", required = true)
-            @PathVariable Integer id) {
+            @PathVariable Long id) {
         log.info("Запрос на получение информации о пользователе id={}", id);
         Person person = peopleService.findById(id).orElseThrow(() -> {
             log.error("Пользователь с id={} не найден", id);

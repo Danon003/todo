@@ -6,16 +6,16 @@ import java.time.LocalDateTime;
 
 @Data
 public class VideoMeetingDTO {
-    private Integer id;
+    private Long id;
     private String title;
     private String description;
     private String meetingUrl;
     private String meetingId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private Integer createdById;
+    private Long createdById;
     private String createdByUsername;
-    private Integer groupId;
+    private Long groupId;
     private String groupName;
     private Boolean isActive;
     private LocalDateTime createdAt;

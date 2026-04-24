@@ -7,8 +7,8 @@ import ru.danon.spring.ToDo.models.postgre.Task;
 import java.util.List;
 
 @Repository
-public interface TaskRepository extends JpaRepository<Task, Integer> {
-    List<Task> findByAuthorId(Integer authorId);
+public interface TaskRepository extends JpaRepository<Task, Long> {
+    List<Task> findByAuthorId(Long authorId);
 
-    Task findTaskById(Integer taskId);
+    Task findTaskById(Long taskId);
 }

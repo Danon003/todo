@@ -7,8 +7,8 @@ import java.time.LocalDateTime;
 @Data
 public class CommentDTO {
     private String id;
-    private Integer taskId;
-    private Integer authorId;
+    private Long taskId;
+    private Long authorId;
     private String authorName;
     private String authorRole;
     private String content;

@@ -7,6 +7,6 @@ import ru.danon.spring.ToDo.models.postgre.Tag;
 import java.util.Optional;
 
 @Repository
-public interface TagRepository extends JpaRepository<Tag, Integer> {
+public interface TagRepository extends JpaRepository<Tag, Long> {
     Optional<Tag> findByName(String name);
 }

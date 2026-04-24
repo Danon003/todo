@@ -11,8 +11,8 @@ public interface NotificationSchedulingService {
     void rescheduleTaskNotifications(TaskAssignment assignment);
 
     @Transactional
-    void cancelTaskNotifications(Integer taskId, Integer userId);
+    void cancelTaskNotifications(Long taskId, Long userId);
 
     @Transactional
-    void cancelAllTaskNotifications(Integer taskId);
+    void cancelAllTaskNotifications(Long taskId);
 }

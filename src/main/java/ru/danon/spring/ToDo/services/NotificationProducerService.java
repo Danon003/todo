@@ -8,50 +8,50 @@ public interface NotificationProducerService {
     void sendNotification(NotificationEvent event);
 
     // Вспомогательные методы для создания событий
-    void sendTaskAssignedNotification(Integer userId, String userRole, String taskTitle, Integer taskId);
+    void sendTaskAssignedNotification(Long userId, String userRole, String taskTitle, Long taskId);
 
-    void sendGroupAddedNotification(Integer userId, String userRole, String groupName, Integer groupId);
+    void sendGroupAddedNotification(Long userId, String userRole, String groupName, Long groupId);
 
-    void sendGroupRemovedNotification(Integer userId, String userRole, String groupName, Integer groupId);
+    void sendGroupRemovedNotification(Long userId, String userRole, String groupName, Long groupId);
 
-    void sendTaskOverdueNotification(Integer userId, String userRole, String taskTitle, Integer taskId);
+    void sendTaskOverdueNotification(Long userId, String userRole, String taskTitle, Long taskId);
 
     void sendTaskDeadlineApproachingNotification(
-            Integer userId,
+            Long userId,
             String userRole,
             String taskTitle,
-            Integer taskId,
+            Long taskId,
             String timeLabel,
             String eventType
     );
 
-    void sendChangeRoleNotification(Integer userId, String newRole);
+    void sendChangeRoleNotification(Long userId, String newRole);
 
-    void sendTeacherRemovedNotification(Integer id, String groupName);
+    void sendTeacherRemovedNotification(Long id, String groupName);
 
-    void sendTeacherAssignNotification(Integer id, String name);
+    void sendTeacherAssignNotification(Long id, String name);
 
-    void sendSolutionUploadedNotification(Integer teacherUserId, String teacherRole,
-                                          String studentName, String taskTitle, Integer taskId);
+    void sendSolutionUploadedNotification(Long teacherUserId, String teacherRole,
+                                          String studentName, String taskTitle, Long taskId);
 
-    void sendSolutionGradedNotification(Integer studentUserId, String studentRole,
+    void sendSolutionGradedNotification(Long studentUserId, String studentRole,
                                         String teacherName, String taskTitle, Integer grade,
-                                        String comment, Integer taskId);
+                                        String comment, Long taskId);
 
-    void sendCommentNotification(Integer studentUserId, String username,
-                                 String taskTitle, Integer taskId);
+    void sendCommentNotification(Long studentUserId, String username,
+                                 String taskTitle, Long taskId);
 
-    void sendVideoMeetingCreatedNotification(Integer userId,
+    void sendVideoMeetingCreatedNotification(Long userId,
                                              String userRole,
                                              String meetingTitle,
                                              LocalDateTime startTime,
-                                             Integer meetingId,
+                                             Long meetingId,
                                              String groupName);
 
-    void sendVideoMeetingReminderNotification(Integer userId,
+    void sendVideoMeetingReminderNotification(Long userId,
                                               String userRole,
                                               String meetingTitle,
                                               LocalDateTime startTime,
-                                              Integer meetingId,
+                                              Long meetingId,
                                               String meetingUrl);
 }

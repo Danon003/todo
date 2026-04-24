@@ -79,7 +79,7 @@ public class TaskController {
     })
     public ResponseEntity<Void> deleteTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId) {
+            @PathVariable Long taskId) {
         log.info("Запрос на удаление задачи id={}", taskId);
         taskService.deleteTask(taskId);
         log.info("Задача id={} успешно удалена", taskId);
@@ -104,8 +104,8 @@ public class TaskController {
             return ResponseEntity.ok(Page.empty(pageable));
         }
 
-        List<Integer> taskIds = tasks.getContent().stream().map(Task::getId).toList();
-        Map<Integer, List<ru.danon.spring.ToDo.models.postgre.Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
+        List<Long> taskIds = tasks.getContent().stream().map(Task::getId).toList();
+        Map<Long, List<ru.danon.spring.ToDo.models.postgre.Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
 
         Page<TaskDTO> dtoPage = taskMapper.toDtoPage(tasks, tagsByTask);
         log.debug("Получено {} задач из {} всего", dtoPage.getNumberOfElements(), dtoPage.getTotalElements());
@@ -122,7 +122,7 @@ public class TaskController {
     })
     public ResponseEntity<TaskDTO> getTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId) {
+            @PathVariable Long taskId) {
         log.info("Запрос на получение задачи id={}", taskId);
         TaskDTO task = taskMapper.toDto(taskService.findTaskById(taskId));
         log.debug("Задача id={} успешно получена", taskId);
@@ -140,7 +140,7 @@ public class TaskController {
             @Parameter(description = "Параметры пагинации")
             @PageableDefault Pageable pageable,
             @Parameter(description = "ID студента", required = true)
-            @PathVariable Integer userId) {
+            @PathVariable Long userId) {
         log.info("Запрос на получение задач студента id={}, page={}, size={}",
                 userId, pageable.getPageNumber(), pageable.getPageSize());
         Page<MyTaskDTO> tasks = taskService.findUserTasks(userId, pageable);
@@ -157,9 +157,9 @@ public class TaskController {
     })
     public ResponseEntity<Void> assignTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskID,
+            @PathVariable Long taskID,
             @Parameter(description = "ID студента", required = true)
-            @PathVariable Integer userId,
+            @PathVariable Long userId,
             Authentication authentication) {
         log.info("Запрос на назначение задачи id={} студенту id={} от преподавателя: {}",
                 taskID, userId, authentication.getName());
@@ -177,9 +177,9 @@ public class TaskController {
     })
     public ResponseEntity<Void> assignTaskForGroup(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskID,
+            @PathVariable Long taskID,
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId,
+            @PathVariable Long groupId,
             Authentication authentication) {
         log.info("Запрос на назначение задачи id={} группе id={} от преподавателя: {}",
                 taskID, groupId, authentication.getName());
@@ -197,9 +197,9 @@ public class TaskController {
     })
     public ResponseEntity<TaskStatDTO> getStatusTask(
             @Parameter(description = "ID пользователя или группы", required = true)
-            @PathVariable Integer id,
+            @PathVariable Long id,
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "Тип фильтрации: group или student", required = true, example = "student")
             @RequestParam String filter) {
         log.info("Запрос на получение статуса задачи id={} для {} id={}", taskId, filter, id);
@@ -236,7 +236,7 @@ public class TaskController {
     })
     public ResponseEntity<MyTaskDTO> getMyTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication authentication) {
         log.info("Запрос на получение задачи id={} студентом: {}", taskId, authentication.getName());
         MyTaskDTO task = taskService.findMyTasksById(taskId, authentication.getName());
@@ -253,7 +253,7 @@ public class TaskController {
     })
     public ResponseEntity<StatusDTO> getTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication authentication) {
         log.info("Запрос на получение статуса задачи id={} студентом: {}", taskId, authentication.getName());
         StatusDTO status = taskService.findStatusMyTask(taskId, authentication.getName());
@@ -270,7 +270,7 @@ public class TaskController {
     })
     public ResponseEntity<MyTaskDTO> changeStatusMyTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "Новый статус", required = true)
             @RequestBody StatusDTO statusDTO,
             Authentication authentication) {
@@ -291,9 +291,9 @@ public class TaskController {
     })
     public ResponseEntity<Void> shareTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "ID пользователя", required = true)
-            @PathVariable Integer userId,
+            @PathVariable Long userId,
             Authentication authentication) {
         log.info("Запрос на передачу задачи id={} пользователю id={} от студента: {}",
                 taskId, userId, authentication.getName());
@@ -312,7 +312,7 @@ public class TaskController {
     })
     public ResponseEntity<List<PersonResponseDTO>> getListTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication authentication) {
         log.info("Запрос на получение пользователей с задачей id={} от: {}", taskId, authentication.getName());
         List<PersonResponseDTO> users = taskService.getUsersWithTask(taskId, authentication);
@@ -330,7 +330,7 @@ public class TaskController {
     })
     public ResponseEntity<TaskDTO> updateTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "Обновленные данные задачи", required = true)
             @RequestBody TaskDTO taskDTO,
             Authentication auth) {

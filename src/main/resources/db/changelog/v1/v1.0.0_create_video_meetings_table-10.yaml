@@ -1,0 +1,149 @@
+databaseChangeLog:
+  - changeSet:
+      id: "v1.0.0_create_video_meetings_table-01"
+      author: danon
+      comment: "Create video_meetings table"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                schemaName: "task_tracker"
+                tableName: "video_meetings"
+      changes:
+        - createTable:
+            schemaName: "task_tracker"
+            tableName: "video_meetings"
+            remarks: "Таблица видеовстреч"
+            columns:
+              - column:
+                  name: "id"
+                  type: "BIGINT"
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "Уникальный идентификатор встречи"
+              - column:
+                  name: "title"
+                  type: "VARCHAR(255)"
+                  constraints:
+                    nullable: false
+                  remarks: "Название встречи"
+              - column:
+                  name: "description"
+                  type: "TEXT"
+                  remarks: "Описание встречи"
+              - column:
+                  name: "meeting_url"
+                  type: "TEXT"
+                  remarks: "URL для подключения"
+              - column:
+                  name: "meeting_id"
+                  type: "VARCHAR(255)"
+                  remarks: "ID встречи в сервисе"
+              - column:
+                  name: "start_time"
+                  type: "TIMESTAMP"
+                  remarks: "Время начала"
+              - column:
+                  name: "end_time"
+                  type: "TIMESTAMP"
+                  remarks: "Время окончания"
+              - column:
+                  name: "created_by"
+                  type: "BIGINT"
+                  remarks: "ID создателя встречи"
+              - column:
+                  name: "group_id"
+                  type: "BIGINT"
+                  remarks: "ID группы"
+              - column:
+                  name: "is_active"
+                  type: "BOOLEAN"
+                  defaultValue: true
+                  remarks: "Активна ли встреча"
+              - column:
+                  name: "created_at"
+                  type: "TIMESTAMP"
+                  remarks: "Дата создания"
+              - column:
+                  name: "updated_at"
+                  type: "TIMESTAMP"
+                  remarks: "Дата обновления"
+              - column:
+                  name: "reminder_sent"
+                  type: "BOOLEAN"
+                  defaultValue: false
+                  remarks: "Отправлено ли напоминание"
+        - addForeignKeyConstraint:
+            baseTableName: "video_meetings"
+            baseColumnNames: "created_by"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "users"
+            referencedColumnNames: "id"
+            constraintName: "fk_video_meetings_creator"
+            onDelete: "SET NULL"
+        - addForeignKeyConstraint:
+            baseTableName: "video_meetings"
+            baseColumnNames: "group_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "groups"
+            referencedColumnNames: "id"
+            constraintName: "fk_video_meetings_group"
+            onDelete: "SET NULL"
+      rollback:
+        - dropTable:
+            schemaName: "task_tracker"
+            tableName: "video_meetings"
+
+  - changeSet:
+      id: "v1.0.0_create_video_meetings_table-02"
+      author: danon
+      comment: "Create indexes for video_meetings"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            schemaName: "task_tracker"
+            tableName: "video_meetings"
+      changes:
+        - createIndex:
+            indexName: "idx_video_meetings_created_by"
+            tableName: "video_meetings"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "created_by" }
+        - createIndex:
+            indexName: "idx_video_meetings_group_id"
+            tableName: "video_meetings"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "group_id" }
+        - createIndex:
+            indexName: "idx_video_meetings_is_active"
+            tableName: "video_meetings"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "is_active" }
+        - createIndex:
+            indexName: "idx_video_meetings_start_time"
+            tableName: "video_meetings"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "start_time" }
+      rollback:
+        - dropIndex:
+            indexName: "idx_video_meetings_created_by"
+            tableName: "video_meetings"
+            schemaName: "task_tracker"
+        - dropIndex:
+            indexName: "idx_video_meetings_group_id"
+            tableName: "video_meetings"
+            schemaName: "task_tracker"
+        - dropIndex:
+            indexName: "idx_video_meetings_is_active"
+            tableName: "video_meetings"
+            schemaName: "task_tracker"
+        - dropIndex:
+            indexName: "idx_video_meetings_start_time"
+            tableName: "video_meetings"
+            schemaName: "task_tracker"

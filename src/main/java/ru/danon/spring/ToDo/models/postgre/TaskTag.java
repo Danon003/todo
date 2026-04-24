@@ -15,17 +15,17 @@ import ru.danon.spring.ToDo.models.postgre.id.TaskTagId;
 @Getter
 @Setter
 @Entity
-@Table(name = "task_tags")
+@Table(name = "task_tags", schema = "task_tracker")
 @IdClass(TaskTagId.class)
 public class TaskTag {
 
     @Id
     @Column(name = "task_id", nullable = false)
-    private Integer taskId;
+    private Long taskId;
 
     @Id
     @Column(name = "tag_id", nullable = false)
-    private Integer tagId;
+    private Long tagId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id", insertable = false, updatable = false)

@@ -15,18 +15,18 @@ import java.util.List;
 @Repository
 public interface UserGroupRepository extends JpaRepository<UserGroup, UserGroupId> {
     @EntityGraph(attributePaths = {"user", "group"})
-    List<UserGroup> findByGroupId(Integer groupId);
-    boolean existsByGroupIdAndUserId(Integer groupId, Integer userId);
+    List<UserGroup> findByGroupId(Long groupId);
+    boolean existsByGroupIdAndUserId(Long groupId, Long userId);
 
     @Modifying
     @Query("DELETE FROM UserGroup ug WHERE ug.group.id = :groupId AND ug.user.id = :userId")
-    void deleteByGroupIdAndUserId(@Param("groupId") Integer groupId,
-                                  @Param("userId") Integer userId);
+    void deleteByGroupIdAndUserId(@Param("groupId") Long groupId,
+                                  @Param("userId") Long userId);
 
     UserGroup findUserGroupByUser(Person user);
 
-    Integer countByGroupId(Integer groupId);
+    Integer countByGroupId(Long groupId);
 
     @Query("Select g.name from Group g where g.id = :groupId")
-    String getGroupName(@Param("groupId") Integer groupId);
+    String getGroupName(@Param("groupId") Long groupId);
 }

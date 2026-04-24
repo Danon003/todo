@@ -37,7 +37,7 @@ public class CommentsServiceImpl implements CommentsService {
     private final TaskAssignmentRepository taskAssignmentRepository;
 
     @Override
-    public Page<CommentDTO> getTaskComments(Integer taskId, Pageable pageable) {
+    public Page<CommentDTO> getTaskComments(Long taskId, Pageable pageable) {
         log.debug("Получение комментариев к задаче id={}, page={}, size={}",
                 taskId, pageable.getPageNumber(), pageable.getPageSize());
         return commentRepository
@@ -47,7 +47,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Transactional
     @Override
-    public CommentDTO addComment(Integer taskId, Authentication auth, CommentDTO commentDTO) {
+    public CommentDTO addComment(Long taskId, Authentication auth, CommentDTO commentDTO) {
         log.info("Добавление комментария к задаче id={} от пользователя: {}", taskId, auth.getName());
 
         var author = peopleService.findByUsername(auth.getName()).orElseThrow(
@@ -85,7 +85,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Transactional
     @Override
-    public CommentDTO updateComment(String commentId, String content, Integer id) {
+    public CommentDTO updateComment(String commentId, String content, Long id) {
         log.info("Обновление комментария id={} пользователем id={}", commentId, id);
 
         Comment comment = commentRepository.findById(commentId).orElseThrow(() -> {
@@ -107,7 +107,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Transactional
     @Override
-    public void deleteComment(String commentId, Integer id, String role) {
+    public void deleteComment(String commentId, Long id, String role) {
         log.info("Удаление комментария id={} пользователем id={} с ролью {}", commentId, id, role);
 
         Comment comment = commentRepository.findById(commentId).orElseThrow(() -> {

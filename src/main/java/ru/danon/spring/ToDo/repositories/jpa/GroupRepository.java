@@ -10,10 +10,10 @@ import ru.danon.spring.ToDo.models.postgre.Group;
 import java.util.List;
 
 @Repository
-public interface GroupRepository extends JpaRepository<Group, Integer> {
+public interface GroupRepository extends JpaRepository<Group, Long> {
     @EntityGraph(attributePaths = {"teacher", "userGroups", "userGroups.user"})
-    List<Group> findByTeacherId(Integer teacherId);
+    List<Group> findByTeacherId(Long teacherId);
     @EntityGraph(attributePaths = {"teacher", "userGroups", "userGroups.user"})
-    Page<Group> findByTeacherId(Integer teacherId, Pageable pageable);
+    Page<Group> findByTeacherId(Long teacherId, Pageable pageable);
 
 }

@@ -26,12 +26,12 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "tasks")
+@Table(name = "tasks", schema = "task_tracker")
 public class Task {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @NotNull(message = "Заголовок не должен быть пустым")
     @Size(min = 1, max = 255, message = "Заголовок должен быть от 2 до 255 символов")

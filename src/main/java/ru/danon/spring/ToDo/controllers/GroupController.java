@@ -31,6 +31,7 @@ import ru.danon.spring.ToDo.services.AdminService;
 import ru.danon.spring.ToDo.services.GroupService;
 import ru.danon.spring.ToDo.services.TaskService;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -90,9 +91,14 @@ public class GroupController {
     })
     public ResponseEntity<List<PersonResponseDTO>> studentsGroup(
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId) {
+            @PathVariable String groupId) {
         log.info("Запрос на получение студентов группы id={}", groupId);
-        List<PersonResponseDTO> students = groupService.getStudentsByGroupId(groupId);
+
+        if (groupId == null || "null".equals(groupId) || groupId.isBlank()) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+
+        List<PersonResponseDTO> students = groupService.getStudentsByGroupId(Long.parseLong(groupId));
         log.debug("Получено {} студентов в группе id={}", students.size(), groupId);
         return ResponseEntity.ok(students);
     }
@@ -107,9 +113,9 @@ public class GroupController {
     })
     public ResponseEntity<Void> addStudentToGroup(
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId,
+            @PathVariable Long groupId,
             @Parameter(description = "ID студента", required = true)
-            @PathVariable Integer studentId) {
+            @PathVariable Long studentId) {
         log.info("Запрос на добавление студента id={} в группу id={}", studentId, groupId);
         groupService.addStudentToGroup(groupId, studentId);
         log.info("Студент id={} успешно добавлен в группу id={}", studentId, groupId);
@@ -125,9 +131,9 @@ public class GroupController {
     })
     public ResponseEntity<Void> deleteStudentFromGroup(
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId,
+            @PathVariable Long groupId,
             @Parameter(description = "ID студента", required = true)
-            @PathVariable Integer studentId) {
+            @PathVariable Long studentId) {
         log.info("Запрос на удаление студента id={} из группы id={}", studentId, groupId);
         groupService.removeStudentFromGroup(groupId, studentId);
         log.info("Студент id={} успешно удален из группы id={}", studentId, groupId);
@@ -143,7 +149,7 @@ public class GroupController {
     })
     public ResponseEntity<Void> deleteGroup(
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId) {
+            @PathVariable Long groupId) {
         log.info("Запрос на удаление группы id={}", groupId);
         groupService.removeGroup(groupId);
         log.info("Группа id={} успешно удалена", groupId);
@@ -159,9 +165,10 @@ public class GroupController {
     })
     public ResponseEntity<GroupResponseDTO> getGroup(
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId,
+            @PathVariable Long groupId,
             Authentication auth) {
         log.info("Запрос на получение информации о группе id={} от пользователя: {}", groupId, auth.getName());
+
         GroupResponseDTO group = groupService.findById(groupId, auth);
         log.debug("Информация о группе id={} успешно получена", groupId);
         return ResponseEntity.ok(group);
@@ -176,8 +183,9 @@ public class GroupController {
     })
     public ResponseEntity<Set<TaskResponseDTO>> getGroupTasks(
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId) {
+            @PathVariable Long groupId) {
         log.info("Запрос на получение задач группы id={}", groupId);
+
         Set<TaskResponseDTO> tasks = taskService.getGroupTasks(groupId);
         log.debug("Получено {} задач для группы id={}", tasks.size(), groupId);
         return ResponseEntity.ok(tasks);

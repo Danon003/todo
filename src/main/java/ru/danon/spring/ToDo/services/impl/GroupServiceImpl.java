@@ -74,7 +74,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public List<Person> getPersonsByGroupId(Integer groupId) {
+    public List<Person> getPersonsByGroupId(Long groupId) {
         if (groupId == null) {
             return Collections.emptyList();
         }
@@ -89,7 +89,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public List<PersonResponseDTO> getStudentsByGroupId(Integer groupId) {
+    public List<PersonResponseDTO> getStudentsByGroupId(Long groupId) {
         if (groupId == null) {
             return Collections.emptyList();
         }
@@ -105,7 +105,7 @@ public class GroupServiceImpl implements GroupService {
 
     @Transactional
     @Override
-    public void addStudentToGroup(Integer groupId, Integer studentId) {
+    public void addStudentToGroup(Long groupId, Long studentId) {
         log.info("Добавление студента id={} в группу id={}", studentId, groupId);
 
         UserGroup userGroup = new UserGroup();
@@ -149,7 +149,7 @@ public class GroupServiceImpl implements GroupService {
 
     @Transactional
     @Override
-    public void removeStudentFromGroup(Integer groupId, Integer studentId) {
+    public void removeStudentFromGroup(Long groupId, Long studentId) {
         log.info("Удаление студента id={} из группы id={}", studentId, groupId);
 
         if (!userGroupRepository.existsByGroupIdAndUserId(groupId, studentId)) {
@@ -185,14 +185,14 @@ public class GroupServiceImpl implements GroupService {
 
     @Transactional
     @Override
-    public void removeGroup(Integer groupId) {
+    public void removeGroup(Long groupId) {
         log.info("Удаление группы id={}", groupId);
         groupRepository.deleteById(groupId);
         log.info("Группа id={} успешно удалена", groupId);
     }
 
     @Override
-    public GroupResponseDTO findById(Integer groupId, Authentication auth) {
+    public GroupResponseDTO findById(Long groupId, Authentication auth) {
         log.debug("Получение информации о группе id={}", groupId);
 
         Group group = groupRepository.findById(groupId)
@@ -213,7 +213,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public Integer getUserGroup(String name) {
+    public Long getUserGroup(String name) {
         log.debug("Получение группы пользователя: {}", name);
 
         try {
@@ -227,7 +227,7 @@ public class GroupServiceImpl implements GroupService {
 
             UserGroup userGroup = userGroupRepository.findUserGroupByUser(user);
 
-            Integer groupId = (userGroup != null && userGroup.getGroup() != null)
+            Long groupId = (userGroup != null && userGroup.getGroup() != null)
                     ? userGroup.getGroup().getId()
                     : null;
 
@@ -307,7 +307,7 @@ public class GroupServiceImpl implements GroupService {
         log.debug("Получение информации о группе для пользователя: {}", authentication.getName());
 
         GroupResponseDTO groupResponseDTO = new GroupResponseDTO();
-        Integer groupId = getUserGroup(authentication.getName());
+        Long groupId = getUserGroup(authentication.getName());
         groupResponseDTO.setId(groupId);
 
         if (groupId != null) {

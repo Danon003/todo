@@ -18,10 +18,10 @@ public interface PeopleService {
 
     Optional<Person> findByEmail(String email);
 
-    Optional<Person> findById(Integer userId);
+    Optional<Person> findById(Long userId);
 
     @Transactional
-    void deleteById(Integer userId);
+    void deleteById(Long userId);
 
     @Transactional
     Person save(Person person);

@@ -51,7 +51,7 @@ public class NotificationSchedulingServiceImpl implements NotificationScheduling
         scheduleTaskNotifications(assignment);
     }
 
-    @Transactional @Override public void cancelTaskNotifications(Integer taskId, Integer userId) {
+    @Transactional @Override public void cancelTaskNotifications(Long taskId, Long userId) {
         List<ScheduledNotification> pendingNotifications =
                 scheduledNotificationRepository.findByTaskIdAndUserIdAndStatus(taskId, userId, "PENDING");
 
@@ -65,7 +65,7 @@ public class NotificationSchedulingServiceImpl implements NotificationScheduling
         }
     }
 
-    @Transactional @Override public void cancelAllTaskNotifications(Integer taskId) {
+    @Transactional @Override public void cancelAllTaskNotifications(Long taskId) {
         List<ScheduledNotification> pendingNotifications =
                 scheduledNotificationRepository.findByTaskId(taskId);
 

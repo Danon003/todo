@@ -16,17 +16,17 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "scheduled_notifications")
+@Table(name = "scheduled_notifications", schema = "task_tracker")
 public class ScheduledNotification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @Column(name = "user_id", nullable = false)
-    private Integer userId;
+    private Long userId;
 
     @Column(name = "task_id", nullable = false)
-    private Integer taskId;
+    private Long taskId;
 
     @Column(name = "event_type", nullable = false, length = 50)
     private String eventType;
