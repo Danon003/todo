@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: "v1.0.0_move_priority_to_task_assignments-01"
+      author: codex
+      comment: "Move priority to task assignments"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            schemaName: "task_tracker"
+            tableName: "task_assignments"
+      changes:
+        - addColumn:
+            schemaName: "task_tracker"
+            tableName: "task_assignments"
+            columns:
+              - column:
+                  name: "priority"
+                  type: "VARCHAR(10)"
+                  defaultValue: "MEDIUM"
+                  remarks: "Student priority for assigned task: HIGH, MEDIUM, LOW"
+        - sql:
+            sql: "UPDATE task_tracker.task_assignments ta SET priority = COALESCE(t.priority, 'MEDIUM') FROM task_tracker.tasks t WHERE ta.task_id = t.id"
+        - addNotNullConstraint:
+            schemaName: "task_tracker"
+            tableName: "task_assignments"
+            columnName: "priority"
+            columnDataType: "VARCHAR(10)"
+        - sql:
+            sql: "ALTER TABLE task_tracker.task_assignments ADD CONSTRAINT valid_assignment_priority CHECK (priority IN ('HIGH', 'MEDIUM', 'LOW'))"
+      rollback:
+        - sql:
+            sql: "ALTER TABLE task_tracker.task_assignments DROP CONSTRAINT IF EXISTS valid_assignment_priority"
+        - dropColumn:
+            schemaName: "task_tracker"
+            tableName: "task_assignments"
+            columnName: "priority"
