@@ -16,17 +16,19 @@ import java.util.List;
 
 @Repository
 public interface TaskTagRepository extends JpaRepository<TaskTag, TaskTagId> {
-    List<TaskTag> findByTaskId(Integer taskId);
-    List<TaskTag> findByTagId(Integer tagId);
-    void deleteByTaskId(Integer taskId);
+    List<TaskTag> findByTaskId(Long taskId);
+    List<TaskTag> findByTagId(Long tagId);
+    void deleteByTaskId(Long taskId);
     @Query("SELECT tt FROM TaskTag tt JOIN FETCH tt.tag WHERE tt.taskId = :taskId")
-    List<TaskTag> findTaskTagsWithTagsByTaskId(@Param("taskId") Integer taskId);
+    List<TaskTag> findTaskTagsWithTagsByTaskId(@Param("taskId") Long taskId);
 
     @Query("SELECT tt FROM TaskTag tt JOIN FETCH tt.tag WHERE tt.taskId IN :taskIds")
-    List<TaskTag> findTaskTagsWithTagsByTaskIds(@Param("taskIds") Collection<Integer> taskIds);
-    boolean existsByTaskIdAndTagId(Integer taskId, Integer tagId);
+    List<TaskTag> findTaskTagsWithTagsByTaskIds(@Param("taskIds") Collection<Long> taskIds);
+    boolean existsByTaskIdAndTagId(Long taskId, Long tagId);
 
-    List<Task> findTasksByTag_Name(@NotNull(message = "Имя тега не должно быть пустым") @UniqueElements @Size(min = 2, max = 50, message = "Название тега должно быть от 2 до 50 символов") String tagName);
+    List<Task> findTasksByTag_Name(@NotNull(message = "Имя тега не должно быть пустым")
+                                   @UniqueElements
+                                   @Size(min = 2, max = 50, message = "Название тега должно быть от 2 до 50 символов") String tagName);
 
-    void deleteByTaskIdAndTagId(Integer taskId, Integer tagId);
+    void deleteByTaskIdAndTagId(Long taskId, Long tagId);
 }

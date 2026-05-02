@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "user_groups")
+@Table(name = "user_groups", schema = "task_tracker")
 public class UserGroup {
 
     @EmbeddedId

@@ -9,7 +9,7 @@ SET session_replication_role = replica;
 -- ============================================
 -- 1. USERS (16 test users)
 -- ============================================
-INSERT INTO public.users (id, password, name, email, role, created_at) VALUES
+INSERT INTO users (id, password, name, email, role, created_at) VALUES
                                                                            (26, '$2a$10$MplSqsMExTpbQDCp7wMUAOZzfgZYZlnWg2ZZhoPtmd671qkaycp2.', 'user3', 'user3@ru.com', 'ROLE_STUDENT', NULL),
                                                                            (24, '$2a$10$zqWTguyCBdctZpUQ5tafpuJoxH3Xe7FmAPuL5bNZIKY8r7M/g0B8a', 'user1', 'user1@mail.ru', 'ROLE_STUDENT', '2025-10-10 22:16:36.197914'),
                                                                            (2, '$2a$10$MmKR9X5/xAEfulVGfezDc.I4uW6Ns8ARB.Qfk.3.X/Vz8fzxApIYi', 'Danon', 'Danon@yan.ru', 'ROLE_ADMIN', NULL),
@@ -28,22 +28,22 @@ INSERT INTO public.users (id, password, name, email, role, created_at) VALUES
                                                                            (28, '$2a$10$5s7kx/3zXgsvH7moXJ/GkuM82SLHMqmroqN1tkbUA1MwsvtEAB0Bi', 'Albert', 'Dan0n003@yandex.ru', 'ROLE_STUDENT', NULL),
                                                                            (16, '$2a$10$7GhHu/K7Wo6H36rhQnuhUe.1cPzHkhFrkky28WKlINt4VUVHHTrhu', 'Alexander', 'Alexandrdr@drdr.ru', 'ROLE_STUDENT', '2025-09-09 14:47:18.652352');
 
-SELECT setval('public.users_id_seq', (SELECT MAX(id) FROM public.users));
+SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 
 -- ============================================
 -- 2. GROUPS (3 test groups)
 -- ============================================
-INSERT INTO public.groups (id, name, description, created_at, teacher_id) VALUES
+INSERT INTO groups (id, name, description, created_at, teacher_id) VALUES
                                                                               (1, '3 Группа', 'Тестовая группа', '2025-07-12 02:27:39.207886', 10),
                                                                               (5, '8 Группа', 'Тестовая группа', '2025-07-12 03:03:52.233303', 10),
                                                                               (19, '9 группа', 'Тестовая группа', '2026-04-17 17:01:47.454558', 17);
 
-SELECT setval('public.groups_id_seq', (SELECT MAX(id) FROM public.groups));
+SELECT setval('groups_id_seq', (SELECT MAX(id) FROM groups));
 
 -- ============================================
 -- 3. TAGS (21 test tags)
 -- ============================================
-INSERT INTO public.tags (id, name) VALUES
+INSERT INTO tags (id, name) VALUES
                                        (1, 'математика'),
                                        (2, 'программирование'),
                                        (3, 'физика'),
@@ -67,12 +67,12 @@ INSERT INTO public.tags (id, name) VALUES
                                        (27, 'доклад'),
                                        (28, 'психология');
 
-SELECT setval('public.tags_id_seq', (SELECT MAX(id) FROM public.tags));
+SELECT setval('tags_id_seq', (SELECT MAX(id) FROM tags));
 
 -- ============================================
 -- 4. TASKS (14 test tasks)
 -- ============================================
-INSERT INTO public.tasks (id, title, description, deadline, priority, author_id, created_at) VALUES
+INSERT INTO tasks (id, title, description, deadline, priority, author_id, created_at) VALUES
                                                                                                  (92, 'тест времени', 'за 12 часов', '2025-11-23 09:30:00', 'MEDIUM', 10, '2025-11-22 16:16:56.874766'),
                                                                                                  (90, 'тест времени', 'за сутки', '2025-11-23 21:30:00', 'MEDIUM', 10, '2025-11-22 16:15:34.772493'),
                                                                                                  (91, 'тест времени', 'за двое суток', '2025-11-24 21:30:00', 'MEDIUM', 10, '2025-11-22 16:16:00.88537'),
@@ -99,12 +99,12 @@ INSERT INTO public.tasks (id, title, description, deadline, priority, author_id,
                                                                                                  (51, 'Подготовиться к КР по физике', 'подготовка к КР по оптике', '2025-12-10 06:10:00', 'MEDIUM', 10, '2025-10-07 11:13:13.18901'),
                                                                                                  (52, 'ВКР', 'написание работы', '2026-05-20 04:00:00', 'HIGH', 10, '2025-10-07 11:13:53.630326');
 
-SELECT setval('public.tasks_id_seq', (SELECT MAX(id) FROM public.tasks));
+SELECT setval('tasks_id_seq', (SELECT MAX(id) FROM tasks));
 
 -- ============================================
 -- 5. TASK_ASSIGNMENTS (53 test assignments)
 -- ============================================
-INSERT INTO public.task_assignments (task_id, user_id, assigned_by, assigned_at, status, updated_at, solution_file_name, solution_file_path, solution_file_size, solution_uploaded_at, grade, teacher_comment) VALUES
+INSERT INTO task_assignments (task_id, user_id, assigned_by, assigned_at, status, updated_at, solution_file_name, solution_file_path, solution_file_size, solution_uploaded_at, grade, teacher_comment) VALUES
                                                                                                                                                                                                                    (51, 13, 10, '2025-10-07 11:29:29.518187', 'COMPLETED', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
                                                                                                                                                                                                                    (52, 16, NULL, '2025-10-07 11:30:26.225886', 'COMPLETED', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
                                                                                                                                                                                                                    (58, 3, 10, '2025-10-07 15:11:30.320719', 'COMPLETED', NULL, 'Задача МАИ.pdf', 'tasks/58/solutions/3/e0978f1e-9576-4654-9291-049a1c5199b4.pdf', 508457, '2025-10-28 17:53:50.365211', NULL, NULL),
@@ -213,7 +213,7 @@ INSERT INTO public.task_assignments (task_id, user_id, assigned_by, assigned_at,
 -- ============================================
 -- 6. TASK_TAGS (6 test relations)
 -- ============================================
-INSERT INTO public.task_tags (task_id, tag_id) VALUES
+INSERT INTO task_tags (task_id, tag_id) VALUES
                                                    (77, 3),
                                                    (77, 18),
                                                    (80, 2),
@@ -239,7 +239,7 @@ INSERT INTO public.task_tags (task_id, tag_id) VALUES
 -- ============================================
 -- 7. USER_GROUPS (11 test relations)
 -- ============================================
-INSERT INTO public.user_groups (user_id, group_id, created_at) VALUES
+INSERT INTO user_groups (user_id, group_id, created_at) VALUES
                                                                    (12, 1, '2025-07-15 15:09:11.294383'),
                                                                    (11, 1, '2025-07-15 16:07:30.150786'),
                                                                    (3, 1, '2025-10-04 17:06:53.698657'),
@@ -255,7 +255,7 @@ INSERT INTO public.user_groups (user_id, group_id, created_at) VALUES
 -- ============================================
 -- 8. SCHEDULED_NOTIFICATIONS (63 test notifications)
 -- ============================================
-INSERT INTO public.scheduled_notifications (id, user_id, task_id, event_type, scheduled_time, notification_time, status, attempt_count, created_at, updated_at) VALUES
+INSERT INTO scheduled_notifications (id, user_id, task_id, event_type, scheduled_time, notification_time, status, attempt_count, created_at, updated_at) VALUES
                                                                                                                                                                     (103, 26, 89, 'TASK_DEADLINE_2D', '2026-05-18 10:00:00', NULL, 'PENDING', 0, '2026-04-14 00:16:29.769989', '2026-04-14 00:16:29.769989'),
                                                                                                                                                                     (104, 26, 89, 'TASK_DEADLINE_1D', '2026-05-19 10:00:00', NULL, 'PENDING', 0, '2026-04-14 00:16:29.839271', '2026-04-14 00:16:29.839271'),
                                                                                                                                                                     (105, 26, 89, 'TASK_DEADLINE_12H', '2026-05-19 22:00:00', NULL, 'PENDING', 0, '2026-04-14 00:16:29.845272', '2026-04-14 00:16:29.845272'),
@@ -398,12 +398,12 @@ INSERT INTO public.scheduled_notifications (id, user_id, task_id, event_type, sc
                                                                                                                                                                     (140, 25, 93, 'TASK_DEADLINE_1D', '2026-04-19 13:20:00', NULL, 'CANCELLED', 0, '2026-04-17 17:10:56.729571', '2026-04-20 15:51:17.793765'),
                                                                                                                                                                     (141, 25, 93, 'TASK_DEADLINE_12H', '2026-04-20 01:20:00', NULL, 'CANCELLED', 0, '2026-04-17 17:10:56.734571', '2026-04-20 15:51:17.793765');
 
-SELECT setval('public.scheduled_notifications_id_seq', (SELECT MAX(id) FROM public.scheduled_notifications));
+SELECT setval('scheduled_notifications_id_seq', (SELECT MAX(id) FROM scheduled_notifications));
 
 -- ============================================
 -- 9. VIDEO_MEETINGS (12 test meetings)
 -- ============================================
-INSERT INTO public.video_meetings (id, title, description, meeting_url, meeting_id, start_time, end_time, created_by, group_id, is_active, created_at, updated_at, reminder_sent) VALUES
+INSERT INTO video_meetings (id, title, description, meeting_url, meeting_id, start_time, end_time, created_by, group_id, is_active, created_at, updated_at, reminder_sent) VALUES
                                                                                                                                                                                       (25, 'Лекция', 'Базы данных', 'https://meet.jit.si/лекция-c8e6a31b', 'лекция-c8e6a31b', '2025-12-24 15:05:00', '2025-12-24 17:06:00', 10, NULL, false, '2025-12-24 15:06:19.145196', '2026-02-11 12:59:43.405656', false),
                                                                                                                                                                                       (26, 'Тестовая встреча', NULL, 'https://meet.jit.si/тестовая-встреча-cefc5dbf', 'тестовая-встреча-cefc5dbf', '2026-02-11 17:55:00', '2026-02-11 18:55:00', 10, NULL, false, '2026-02-11 17:53:32.765329', '2026-02-11 18:36:23.096934', false),
                                                                                                                                                                                       (14, 'лекция', 'история России', 'https://meet.jit.si/лекция-5dd6ece0', 'лекция-5dd6ece0', '2025-11-26 15:32:00', '2025-11-26 15:50:00', 10, 5, false, '2025-11-26 15:32:40.029529', '2025-11-26 15:35:33.884418', false),
@@ -426,12 +426,12 @@ INSERT INTO public.video_meetings (id, title, description, meeting_url, meeting_
                                                                                                                                                                                       (31, 'Мобильная разработка', 'Лекция по МР на андроид', 'https://meet.jit.si/мобильная-разработка-204ba595', 'мобильная-разработка-204ba595', '2026-02-24 17:50:00', '2026-02-24 19:20:00', 10, NULL, false, '2026-02-24 16:16:44.631664', '2026-04-14 12:36:33.581401', true),
                                                                                                                                                                                       (33, 'лекция по истории', NULL, 'https://meet.jit.si/лекция-по-истории-3fb047dd', 'лекция-по-истории-3fb047dd', '2026-04-16 20:20:00', '2026-04-16 21:00:00', 10, 1, false, '2026-04-16 20:23:36.536073', '2026-04-16 20:24:26.123486', false);
 
-SELECT setval('public.video_meetings_id_seq', (SELECT MAX(id) FROM public.video_meetings));
+SELECT setval('video_meetings_id_seq', (SELECT MAX(id) FROM video_meetings));
 
 -- ============================================
 -- 10. ROLE_AUDIT_LOG (25 test logs)
 -- ============================================
-INSERT INTO public.role_audit_log (id, user_id, old_role, new_role, changed_at) VALUES
+INSERT INTO role_audit_log (id, user_id, old_role, new_role, changed_at) VALUES
                                                                                     (5, 2, 'STUDENT', 'ROLE_ADMIN', '2025-07-12 01:46:11.90486'),
                                                                                     (7, 10, 'ROLE_STUDENT', 'ROLE_TEACHER', '2025-07-12 02:06:53.497536'),
                                                                                     (8, 3, 'STUDENT', 'ROLE_STUDENT', '2025-07-13 15:18:10.900322'),
@@ -498,12 +498,12 @@ INSERT INTO public.role_audit_log (id, user_id, old_role, new_role, changed_at) 
                                                                                     (95, 16, 'ROLE_TEACHER', 'ROLE_STUDENT', '2026-04-16 20:27:32.051961'),
                                                                                     (96, 24, 'ROLE_TEACHER', 'ROLE_STUDENT', '2026-04-17 17:04:19.97428');
 
-SELECT setval('public.role_audit_log_id_seq', (SELECT MAX(id) FROM public.role_audit_log));
+SELECT setval('role_audit_log_id_seq', (SELECT MAX(id) FROM role_audit_log));
 
 -- ============================================
 -- 11. TASK_FILES (5 test files)
 -- ============================================
-INSERT INTO public.task_files (id, task_id, original_file_name, stored_file_name, file_path, file_size, file_type, uploaded_at, uploaded_by) VALUES
+INSERT INTO task_files (id, task_id, original_file_name, stored_file_name, file_path, file_size, file_type, uploaded_at, uploaded_by) VALUES
                                                                                                                                                  (1, 51, 'Лабораторная работа №2.pptx', '18ebac30-d027-4252-b00c-482bf30914cb.pptx', 'tasks/51/task-files/18ebac30-d027-4252-b00c-482bf30914cb.pptx', 362802, 'application/vnd.openxmlformats-officedocument.presentationml.presentation', '2025-10-21 21:13:41.817743', 10),
                                                                                                                                                  (13, 58, 'Варианты для ЛР №2.xlsx', 'c6c6d4f3-cc3e-4319-8291-99c72aa178f0.xlsx', 'tasks/58/task-files/c6c6d4f3-cc3e-4319-8291-99c72aa178f0.xlsx', 16561, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '2025-10-28 17:48:59.709722', 10),
                                                                                                                                                  (14, 58, 'nir_docx.pdf', 'b67a4d39-7c85-42a3-9015-4af04cff4534.pdf', 'tasks/58/task-files/b67a4d39-7c85-42a3-9015-4af04cff4534.pdf', 446539, 'application/pdf', '2025-11-10 23:42:47.914539', 10),
@@ -514,7 +514,7 @@ INSERT INTO public.task_files (id, task_id, original_file_name, stored_file_name
                                                                                                                                                  (21, 95, 'Лабораторная работа №6.pptx', 'ce1fb009-1326-4df4-ae58-7de3e2e8907c.pptx', 'tasks/95/task-files/ce1fb009-1326-4df4-ae58-7de3e2e8907c.pptx', 273608, 'application/vnd.openxmlformats-officedocument.presentationml.presentation', '2026-02-24 14:12:12.94913', 10),
                                                                                                                                                  (23, 94, 'Sposoby-predotvrasheniya-panicheskih-atak-i-samoregulyaciya.pptx', '197e7f91-c100-40c5-aa10-81704aae39f8.pptx', 'tasks/94/task-files/197e7f91-c100-40c5-aa10-81704aae39f8.pptx', 8514446, 'application/vnd.openxmlformats-officedocument.presentationml.presentation', '2026-02-24 18:13:49.542618', 10);
 
-SELECT setval('public.task_files_id_seq', (SELECT MAX(id) FROM public.task_files));
+SELECT setval('task_files_id_seq', (SELECT MAX(id) FROM task_files));
 
 -- Re-enable triggers
 SET session_replication_role = DEFAULT;

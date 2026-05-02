@@ -17,13 +17,13 @@ public interface AdminService {
     void createGroup(String groupName, String description);
 
     @Transactional
-    void changeUserRole(Integer userId, String newRole);
+    void changeUserRole(Long userId, String newRole);
 
     @Transactional
-    void assignTeacherToGroup(Integer groupId, Integer userId);
+    void assignTeacherToGroup(Long groupId, Long userId);
 
     @Transactional
-    Person createTeacher(Integer id);
+    Person createTeacher(Long id);
 
     Page<Person> getUsersByRole(String role, Pageable page);
 

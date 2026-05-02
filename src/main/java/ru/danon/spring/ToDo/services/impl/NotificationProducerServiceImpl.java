@@ -22,7 +22,8 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private final KafkaTemplate<String, NotificationEvent> kafkaTemplate;
 
-    @Override public void sendNotification(NotificationEvent event) {
+    @Override
+    public void sendNotification(NotificationEvent event) {
         try {
             kafkaTemplate.send("notifications-topic", event.getUserId().toString(), event)
                     .whenComplete((result, ex) -> {
@@ -40,7 +41,8 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
     }
 
     // Вспомогательные методы для создания событий
-    @Override public void sendTaskAssignedNotification(Integer userId, String userRole, String taskTitle, Integer taskId) {
+    @Override
+    public void sendTaskAssignedNotification(Long userId, String userRole, String taskTitle, Long taskId) {
         log.debug("Создание уведомления о назначении задачи: userId={}, taskId={}, title={}", userId, taskId, taskTitle);
 
         NotificationEvent event = new NotificationEvent();
@@ -56,7 +58,8 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendGroupAddedNotification(Integer userId, String userRole, String groupName, Integer groupId) {
+    @Override
+    public void sendGroupAddedNotification(Long userId, String userRole, String groupName, Long groupId) {
         log.debug("Создание уведомления о добавлении в группу: userId={}, groupId={}, name={}", userId, groupId, groupName);
 
         NotificationEvent event = new NotificationEvent();
@@ -72,7 +75,8 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendGroupRemovedNotification(Integer userId, String userRole, String groupName, Integer groupId) {
+    @Override
+    public void sendGroupRemovedNotification(Long userId, String userRole, String groupName, Long groupId) {
         log.debug("Создание уведомления об удалении из группы: userId={}, groupId={}, name={}", userId, groupId, groupName);
 
         NotificationEvent event = new NotificationEvent();
@@ -88,7 +92,8 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendTaskOverdueNotification(Integer userId, String userRole, String taskTitle, Integer taskId) {
+    @Override
+    public void sendTaskOverdueNotification(Long userId, String userRole, String taskTitle, Long taskId) {
         log.debug("Создание уведомления о просроченной задаче: userId={}, taskId={}, title={}", userId, taskId, taskTitle);
 
         NotificationEvent event = new NotificationEvent();
@@ -104,11 +109,12 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendTaskDeadlineApproachingNotification(
-            Integer userId,
+    @Override
+    public void sendTaskDeadlineApproachingNotification(
+            Long userId,
             String userRole,
             String taskTitle,
-            Integer taskId,
+            Long taskId,
             String timeLabel,
             String eventType
     ) {
@@ -130,7 +136,8 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendChangeRoleNotification(Integer userId, String newRole) {
+    @Override
+    public void sendChangeRoleNotification(Long userId, String newRole) {
         log.debug("Создание уведомления о смене роли: userId={}, newRole={}", userId, newRole);
 
         NotificationEvent event = new NotificationEvent();
@@ -147,7 +154,8 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendTeacherRemovedNotification(Integer id, String groupName) {
+    @Override
+    public void sendTeacherRemovedNotification(Long id, String groupName) {
         log.debug("Создание уведомления о снятии с должности преподавателя: userId={}, groupName={}", id, groupName);
 
         NotificationEvent event = new NotificationEvent();
@@ -162,7 +170,8 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendTeacherAssignNotification(Integer id, String name) {
+    @Override
+    public void sendTeacherAssignNotification(Long id, String name) {
         log.debug("Создание уведомления о назначении преподавателем: userId={}, groupName={}", id, name);
 
         NotificationEvent event = new NotificationEvent();
@@ -177,8 +186,9 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendSolutionUploadedNotification(Integer teacherUserId, String teacherRole,
-                                                 String studentName, String taskTitle, Integer taskId) {
+    @Override
+    public void sendSolutionUploadedNotification(Long teacherUserId, String teacherRole,
+                                                 String studentName, String taskTitle, Long taskId) {
         log.debug("Создание уведомления о загрузке решения: teacherId={}, student={}, taskId={}",
                 teacherUserId, studentName, taskId);
 
@@ -202,9 +212,10 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
     /**
      * Уведомление об оценке решения преподавателем
      */
-    @Override public void sendSolutionGradedNotification(Integer studentUserId, String studentRole,
+    @Override
+    public void sendSolutionGradedNotification(Long studentUserId, String studentRole,
                                                String teacherName, String taskTitle, Integer grade,
-                                               String comment, Integer taskId) {
+                                               String comment, Long taskId) {
         log.debug("Создание уведомления об оценке решения: studentId={}, teacher={}, taskId={}, grade={}",
                 studentUserId, teacherName, taskId, grade);
 
@@ -227,8 +238,9 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendCommentNotification(Integer studentUserId, String username,
-                                        String taskTitle, Integer taskId) {
+    @Override
+    public void sendCommentNotification(Long studentUserId, String username,
+                                        String taskTitle, Long taskId) {
         log.debug("Создание уведомления о комментарии: userId={}, author={}, taskId={}", studentUserId, username, taskId);
 
         NotificationEvent event = new NotificationEvent();
@@ -246,11 +258,12 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendVideoMeetingCreatedNotification(Integer userId,
+    @Override
+    public void sendVideoMeetingCreatedNotification(Long userId,
                                                     String userRole,
                                                     String meetingTitle,
                                                     LocalDateTime startTime,
-                                                    Integer meetingId,
+                                                              Long meetingId,
                                                     String groupName) {
         log.debug("Создание уведомления о видеовстрече: userId={}, meetingId={}, title={}", userId, meetingId, meetingTitle);
 
@@ -272,11 +285,12 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    @Override public void sendVideoMeetingReminderNotification(Integer userId,
+    @Override
+    public void sendVideoMeetingReminderNotification(Long userId,
                                                      String userRole,
                                                      String meetingTitle,
                                                      LocalDateTime startTime,
-                                                     Integer meetingId,
+                                                               Long meetingId,
                                                      String meetingUrl) {
         log.debug("Создание напоминания о видеовстрече: userId={}, meetingId={}, title={}", userId, meetingId, meetingTitle);
 
@@ -298,7 +312,8 @@ public class NotificationProducerServiceImpl implements NotificationProducerServ
         sendNotification(event);
     }
 
-    private String buildMeetingCreationMessage(String title, LocalDateTime startTime, String groupName) {
+    private String
+    buildMeetingCreationMessage(String title, LocalDateTime startTime, String groupName) {
         StringBuilder builder = new StringBuilder("Назначена видеовстреча ");
         builder.append("\"").append(title).append("\"");
         if (startTime != null) {

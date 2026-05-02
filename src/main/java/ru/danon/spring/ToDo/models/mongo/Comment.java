@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 public class Comment {
     @Id
     private String id;
-    private Integer taskId;
-    private Integer authorId;
+    private Long taskId;
+    private Long authorId;
     private String authorName;
     private String authorRole;
     private String content;
@@ -26,7 +26,7 @@ public class Comment {
 
     public Comment() {}
 
-    public Comment(Integer taskId, Integer authorId, String authorName, String authorRole, String content) {
+    public Comment(Long taskId, Long authorId, String authorName, String authorRole, String content) {
         this.taskId = taskId;
         this.authorId = authorId;
         this.authorName = authorName;

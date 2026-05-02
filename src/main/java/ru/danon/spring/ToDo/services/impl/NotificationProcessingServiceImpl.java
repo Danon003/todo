@@ -111,7 +111,7 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
         scheduledNotificationRepository.save(notification);
     }
 
-    private boolean isTaskValidForNotification(Integer taskId, Integer userId) {
+    private boolean isTaskValidForNotification(Long taskId, Long userId) {
         // Проверяем, что задача существует, не завершена и не просрочена
         boolean isValid = taskAssignmentRepository.existsValidTaskForNotification(taskId, userId, LocalDateTime.now());
         log.debug("Проверка актуальности задачи для уведомления: taskId={}, userId={}, isValid={}", taskId, userId, isValid);
@@ -143,7 +143,7 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
         };
     }
 
-    private String getTaskTitle(Integer taskId) {
+    private String getTaskTitle(Long taskId) {
         return taskRepository.findById(taskId)
                 .map(task -> task.getTitle())
                 .orElse("Неизвестная задача");

@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface CommentRepository extends MongoRepository<Comment, Integer> {
+public interface CommentRepository extends MongoRepository<Comment, Long> {
 
     Optional<Comment> findById(String id);
 
-    Page<Comment> findByTaskIdAndParentIdIsNullOrderByCreatedAtAsc(Integer taskId, Pageable pageable);
+    Page<Comment> findByTaskIdAndParentIdIsNullOrderByCreatedAtAsc(Long taskId, Pageable pageable);
 
     List<Comment> findByParentIdOrderByCreatedAtAsc(String parentId);
 

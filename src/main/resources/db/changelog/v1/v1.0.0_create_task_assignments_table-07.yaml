@@ -1,0 +1,120 @@
+databaseChangeLog:
+  - changeSet:
+      id: "v1.0.0_create_task_assignments_table-01"
+      author: danon
+      comment: "Create task_assignments table"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                schemaName: "task_tracker"
+                tableName: "task_assignments"
+      changes:
+        - createTable:
+            schemaName: "task_tracker"
+            tableName: "task_assignments"
+            remarks: "Таблица назначений задач пользователям"
+            columns:
+              - column:
+                  name: "task_id"
+                  type: "BIGINT"
+                  constraints:
+                    nullable: false
+                  remarks: "ID задачи"
+              - column:
+                  name: "user_id"
+                  type: "BIGINT"
+                  constraints:
+                    nullable: false
+                  remarks: "ID пользователя"
+              - column:
+                  name: "assigned_by"
+                  type: "BIGINT"
+                  remarks: "ID пользователя, назначившего задачу"
+              - column:
+                  name: "assigned_at"
+                  type: "TIMESTAMP"
+                  remarks: "Дата назначения"
+              - column:
+                  name: "status"
+                  type: "VARCHAR(15)"
+                  defaultValue: "NOT_STARTED"
+                  constraints:
+                    nullable: false
+                  remarks: "Статус выполнения: NOT_STARTED, IN_PROGRESS, COMPLETED, OVERDUE"
+              - column:
+                  name: "updated_at"
+                  type: "TIMESTAMP"
+                  remarks: "Дата последнего обновления"
+              - column:
+                  name: "solution_file_name"
+                  type: "VARCHAR(255)"
+                  remarks: "Имя файла решения"
+              - column:
+                  name: "solution_file_path"
+                  type: "VARCHAR(500)"
+                  remarks: "Путь к файлу решения"
+              - column:
+                  name: "solution_file_size"
+                  type: "BIGINT"
+                  remarks: "Размер файла решения"
+              - column:
+                  name: "solution_uploaded_at"
+                  type: "TIMESTAMP"
+                  remarks: "Дата загрузки решения"
+              - column:
+                  name: "grade"
+                  type: "INT"
+                  remarks: "Оценка за задание"
+              - column:
+                  name: "teacher_comment"
+                  type: "TEXT"
+                  remarks: "Комментарий преподавателя"
+        - addPrimaryKey:
+            tableName: "task_assignments"
+            constraintName: "pk_task_assignments"
+            columnNames: "task_id, user_id"
+        - addForeignKeyConstraint:
+            baseTableName: "task_assignments"
+            baseColumnNames: "task_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "tasks"
+            referencedColumnNames: "id"
+            constraintName: "fk_task_assignments_task"
+            onDelete: "CASCADE"
+        - addForeignKeyConstraint:
+            baseTableName: "task_assignments"
+            baseColumnNames: "user_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "users"
+            referencedColumnNames: "id"
+            constraintName: "fk_task_assignments_user"
+            onDelete: "CASCADE"
+        - addForeignKeyConstraint:
+            baseTableName: "task_assignments"
+            baseColumnNames: "assigned_by"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "users"
+            referencedColumnNames: "id"
+            constraintName: "fk_task_assignments_assigned_by"
+            onDelete: "SET NULL"
+      rollback:
+        - dropTable:
+            schemaName: "task_tracker"
+            tableName: "task_assignments"
+
+  - changeSet:
+      id: "v1.0.0_create_task_assignments_table-02"
+      author: danon
+      comment: "Add status check constraint to task_assignments"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            schemaName: "task_tracker"
+            tableName: "task_assignments"
+      changes:
+        - sql:
+            sql: "ALTER TABLE task_tracker.task_assignments ADD CONSTRAINT valid_status CHECK (status IN ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE'))"
+      rollback:
+        - sql:
+            sql: "ALTER TABLE task_tracker.task_assignments DROP CONSTRAINT IF EXISTS valid_status"

@@ -19,16 +19,16 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "task_assignments")
+@Table(name = "task_assignments", schema = "task_tracker")
 @IdClass(TaskAssignmentId.class)
 public class TaskAssignment {
     @Id
     @Column(name = "task_id", insertable = false, updatable = false)
-    private Integer taskId;
+    private Long taskId;
 
     @Id
     @Column(name = "user_id", insertable = false, updatable = false)
-    private Integer userId;
+    private Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -47,6 +47,9 @@ public class TaskAssignment {
 
     @Column(name = "status")
     private String status = "NOT_STARTED";
+
+    @Column(name = "priority")
+    private String priority = "MEDIUM";
 
     @Column(name = "assigned_at", updatable = false)
     private LocalDateTime assignedAt;

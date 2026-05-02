@@ -20,13 +20,13 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "users")
+@Table(name = "users", schema = "task_tracker")
 public class Person {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private Integer id;
+    private Long id;
 
     @NotEmpty
     @Size(min = 2, max = 100, message = "Имя должно быть от 2 до 100 символов")

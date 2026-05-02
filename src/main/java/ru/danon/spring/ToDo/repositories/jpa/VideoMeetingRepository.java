@@ -12,21 +12,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface VideoMeetingRepository extends JpaRepository<VideoMeeting, Integer> {
+public interface VideoMeetingRepository extends JpaRepository<VideoMeeting, Long> {
 
     @EntityGraph(attributePaths = {"createdBy", "group"})
-    List<VideoMeeting> findByCreatedById(Integer createdById);
+    List<VideoMeeting> findByCreatedById(Long createdById);
 
     @EntityGraph(attributePaths = {"createdBy", "group"})
-    List<VideoMeeting> findByGroupId(Integer groupId);
+    List<VideoMeeting> findByGroupId(Long groupId);
 
     @EntityGraph(attributePaths = {"createdBy", "group"})
     @Query("SELECT vm FROM VideoMeeting vm WHERE vm.group.id = :groupId AND vm.isActive = true")
-    List<VideoMeeting> findActiveByGroupId(@Param("groupId") Integer groupId);
+    List<VideoMeeting> findActiveByGroupId(@Param("groupId") Long groupId);
 
     @EntityGraph(attributePaths = {"createdBy", "group"})
     @Query("SELECT vm FROM VideoMeeting vm WHERE vm.createdBy.id = :userId AND vm.isActive = true")
-    List<VideoMeeting> findActiveByCreatedById(@Param("userId") Integer userId);
+    List<VideoMeeting> findActiveByCreatedById(@Param("userId") Long userId);
 
     /**
      * Находит активные встречи для студента (его группы или без группы)
@@ -35,7 +35,7 @@ public interface VideoMeetingRepository extends JpaRepository<VideoMeeting, Inte
     @Query("SELECT vm FROM VideoMeeting vm WHERE vm.isActive = true " +
             "AND (vm.group IS NULL OR vm.group.id = :studentGroupId) " +
             "ORDER BY vm.startTime DESC")
-    List<VideoMeeting> findActiveForStudent(@Param("studentGroupId") Integer studentGroupId);
+    List<VideoMeeting> findActiveForStudent(@Param("studentGroupId") Long studentGroupId);
 
     /**
      * Находит активные встречи без привязки к группе
@@ -52,7 +52,7 @@ public interface VideoMeetingRepository extends JpaRepository<VideoMeeting, Inte
     List<VideoMeeting> findByCreatedByAndIsActive(Person createdBy, Boolean isActive);
 
     @EntityGraph(attributePaths = {"createdBy", "group"})
-    List<VideoMeeting> findByIsActiveTrueAndGroupIdOrGroupIsNull(Integer studentGroupId);
+    List<VideoMeeting> findByIsActiveTrueAndGroupIdOrGroupIsNull(Long studentGroupId);
 
     @EntityGraph(attributePaths = {"createdBy", "group"})
     @Query("SELECT vm FROM VideoMeeting vm WHERE vm.isActive = true AND " +

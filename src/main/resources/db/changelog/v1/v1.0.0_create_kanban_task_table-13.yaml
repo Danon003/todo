@@ -1,0 +1,140 @@
+databaseChangeLog:
+  - changeSet:
+      id: "v1.0.0_create_kanban_task_table-01"
+      author: danon
+      comment: "Create kanban_task table"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                schemaName: "task_tracker"
+                tableName: "kanban_task"
+      changes:
+        - createTable:
+            schemaName: "task_tracker"
+            tableName: "kanban_task"
+            remarks: "Персональные позиции карточек на канбан-доске"
+            columns:
+              - column:
+                  name: "id"
+                  type: "BIGINT"
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: "user_id"
+                  type: "BIGINT"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "task_id"
+                  type: "BIGINT"
+              - column:
+                  name: "meeting_id"
+                  type: "BIGINT"
+              - column:
+                  name: "scheduled_date"
+                  type: "DATE"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "position"
+                  type: "INT"
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "is_fixed"
+                  type: "BOOLEAN"
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "is_optimized"
+                  type: "BOOLEAN"
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "created_at"
+                  type: "TIMESTAMP"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: "updated_at"
+                  type: "TIMESTAMP"
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: "kanban_task"
+            baseColumnNames: "user_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "users"
+            referencedColumnNames: "id"
+            constraintName: "fk_kanban_task_user"
+            onDelete: "CASCADE"
+        - addForeignKeyConstraint:
+            baseTableName: "kanban_task"
+            baseColumnNames: "task_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "tasks"
+            referencedColumnNames: "id"
+            constraintName: "fk_kanban_task_task"
+            onDelete: "CASCADE"
+        - addForeignKeyConstraint:
+            baseTableName: "kanban_task"
+            baseColumnNames: "meeting_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "video_meetings"
+            referencedColumnNames: "id"
+            constraintName: "fk_kanban_task_meeting"
+            onDelete: "CASCADE"
+        - addUniqueConstraint:
+            schemaName: "task_tracker"
+            tableName: "kanban_task"
+            columnNames: "user_id, task_id"
+            constraintName: "uk_kanban_task_user_task"
+        - addUniqueConstraint:
+            schemaName: "task_tracker"
+            tableName: "kanban_task"
+            columnNames: "user_id, meeting_id"
+            constraintName: "uk_kanban_task_user_meeting"
+        - sql:
+            sql: "ALTER TABLE task_tracker.kanban_task ADD CONSTRAINT ck_kanban_task_ref CHECK ((task_id IS NOT NULL AND meeting_id IS NULL) OR (task_id IS NULL AND meeting_id IS NOT NULL))"
+      rollback:
+        - dropTable:
+            schemaName: "task_tracker"
+            tableName: "kanban_task"
+
+  - changeSet:
+      id: "v1.0.0_create_kanban_task_table-02"
+      author: danon
+      comment: "Create indexes for kanban_task"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            schemaName: "task_tracker"
+            tableName: "kanban_task"
+      changes:
+        - createIndex:
+            indexName: "idx_kanban_task_user_id"
+            tableName: "kanban_task"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "user_id" }
+        - createIndex:
+            indexName: "idx_kanban_task_scheduled_date"
+            tableName: "kanban_task"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "scheduled_date" }
+      rollback:
+        - dropIndex:
+            indexName: "idx_kanban_task_user_id"
+            tableName: "kanban_task"
+            schemaName: "task_tracker"
+        - dropIndex:
+            indexName: "idx_kanban_task_scheduled_date"
+            tableName: "kanban_task"
+            schemaName: "task_tracker"

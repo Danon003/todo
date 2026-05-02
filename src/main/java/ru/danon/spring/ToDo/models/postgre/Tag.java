@@ -18,13 +18,13 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "tags")
+@Table(name = "tags", schema = "task_tracker")
 public class Tag {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private Integer id;
+    private Long id;
 
     @NotNull(message = "Имя тега не должно быть пустым")
     @Size(min = 2, max = 50, message = "Название тега должно быть от 2 до 50 символов")

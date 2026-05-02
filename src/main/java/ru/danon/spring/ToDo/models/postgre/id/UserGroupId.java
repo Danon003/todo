@@ -14,14 +14,14 @@ import java.util.Objects;
 public class UserGroupId implements Serializable {
 
     @Column(name = "user_id")
-    private Integer userId;
+    private Long userId;
 
     @Column(name = "group_id")
-    private Integer groupId;
+    private Long groupId;
 
     public UserGroupId() {}
 
-    public UserGroupId(Integer studentId, Integer groupId) {
+    public UserGroupId(Long studentId, Long groupId) {
         this.userId = studentId;
         this.groupId = groupId;
     }

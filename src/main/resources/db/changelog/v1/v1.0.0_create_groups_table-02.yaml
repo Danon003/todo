@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: "v1.0.0_create_groups_table-01"
+      author: danon
+      comment: "Create groups table"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                schemaName: "task_tracker"
+                tableName: "groups"
+      changes:
+        - createTable:
+            schemaName: "task_tracker"
+            tableName: "groups"
+            remarks: "Таблица учебных групп"
+            columns:
+              - column:
+                  name: "id"
+                  type: "BIGINT"
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "Уникальный идентификатор группы"
+              - column:
+                  name: "name"
+                  type: "VARCHAR(100)"
+                  constraints:
+                    nullable: false
+                  remarks: "Название группы"
+              - column:
+                  name: "description"
+                  type: "VARCHAR(255)"
+                  remarks: "Описание группы"
+              - column:
+                  name: "created_at"
+                  type: "TIMESTAMP"
+                  remarks: "Дата создания группы"
+              - column:
+                  name: "teacher_id"
+                  type: "BIGINT"
+                  remarks: "ID преподавателя группы"
+        - addForeignKeyConstraint:
+            baseTableName: "groups"
+            baseColumnNames: "teacher_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "users"
+            referencedColumnNames: "id"
+            constraintName: "fk_groups_teacher"
+            onDelete: "SET NULL"
+            onUpdate: "RESTRICT"
+      rollback:
+        - dropTable:
+            schemaName: "task_tracker"
+            tableName: "groups"

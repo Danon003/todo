@@ -1,0 +1,149 @@
+databaseChangeLog:
+  - changeSet:
+      id: "v1.0.0_create_scheduled_notifications_table-01"
+      author: danon
+      comment: "Create scheduled_notifications table"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                schemaName: "task_tracker"
+                tableName: "scheduled_notifications"
+      changes:
+        - createTable:
+            schemaName: "task_tracker"
+            tableName: "scheduled_notifications"
+            remarks: "Таблица для планирования уведомлений о дедлайнах задач"
+            columns:
+              - column:
+                  name: "id"
+                  type: "BIGINT"
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "Уникальный идентификатор уведомления"
+              - column:
+                  name: "user_id"
+                  type: "BIGINT"
+                  constraints:
+                    nullable: false
+                  remarks: "ID пользователя, которому предназначено уведомление"
+              - column:
+                  name: "task_id"
+                  type: "BIGINT"
+                  constraints:
+                    nullable: false
+                  remarks: "ID задачи, по которой уведомление"
+              - column:
+                  name: "event_type"
+                  type: "VARCHAR(50)"
+                  constraints:
+                    nullable: false
+                  remarks: "Тип события (TASK_DEADLINE_2D, TASK_DEADLINE_1D, etc)"
+              - column:
+                  name: "scheduled_time"
+                  type: "TIMESTAMP"
+                  constraints:
+                    nullable: false
+                  remarks: "Запланированное время отправки уведомления"
+              - column:
+                  name: "notification_time"
+                  type: "TIMESTAMP"
+                  remarks: "Фактическое время отправки уведомления"
+              - column:
+                  name: "status"
+                  type: "VARCHAR(20)"
+                  defaultValue: "PENDING"
+                  constraints:
+                    nullable: false
+                  remarks: "Статус уведомления: PENDING, SENT, CANCELLED, FAILED"
+              - column:
+                  name: "attempt_count"
+                  type: "INT"
+                  defaultValue: 0
+                  remarks: "Количество попыток отправки"
+              - column:
+                  name: "created_at"
+                  type: "TIMESTAMP"
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+                  remarks: "Время создания записи"
+              - column:
+                  name: "updated_at"
+                  type: "TIMESTAMP"
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+                  remarks: "Время последнего обновления записи"
+        - addForeignKeyConstraint:
+            baseTableName: "scheduled_notifications"
+            baseColumnNames: "user_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "users"
+            referencedColumnNames: "id"
+            constraintName: "fk_scheduled_notifications_user"
+            onDelete: "CASCADE"
+        - addForeignKeyConstraint:
+            baseTableName: "scheduled_notifications"
+            baseColumnNames: "task_id"
+            referencedTableSchemaName: "task_tracker"
+            referencedTableName: "tasks"
+            referencedColumnNames: "id"
+            constraintName: "fk_scheduled_notifications_task"
+            onDelete: "CASCADE"
+      rollback:
+        - dropTable:
+            schemaName: "task_tracker"
+            tableName: "scheduled_notifications"
+
+  - changeSet:
+      id: "v1.0.0_create_scheduled_notifications_table-02"
+      author: danon
+      comment: "Create indexes for scheduled_notifications"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            schemaName: "task_tracker"
+            tableName: "scheduled_notifications"
+      changes:
+        - createIndex:
+            indexName: "idx_scheduled_notifications_status_scheduled"
+            tableName: "scheduled_notifications"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "status" }
+              - column: { name: "scheduled_time" }
+        - createIndex:
+            indexName: "idx_scheduled_notifications_task_user"
+            tableName: "scheduled_notifications"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "task_id" }
+              - column: { name: "user_id" }
+        - createIndex:
+            indexName: "idx_scheduled_notifications_user"
+            tableName: "scheduled_notifications"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "user_id" }
+        - createIndex:
+            indexName: "idx_scheduled_notifications_scheduled_time"
+            tableName: "scheduled_notifications"
+            schemaName: "task_tracker"
+            columns:
+              - column: { name: "scheduled_time" }
+      rollback:
+        - dropIndex:
+            indexName: "idx_scheduled_notifications_status_scheduled"
+            tableName: "scheduled_notifications"
+            schemaName: "task_tracker"
+        - dropIndex:
+            indexName: "idx_scheduled_notifications_task_user"
+            tableName: "scheduled_notifications"
+            schemaName: "task_tracker"
+        - dropIndex:
+            indexName: "idx_scheduled_notifications_user"
+            tableName: "scheduled_notifications"
+            schemaName: "task_tracker"
+        - dropIndex:
+            indexName: "idx_scheduled_notifications_scheduled_time"
+            tableName: "scheduled_notifications"
+            schemaName: "task_tracker"

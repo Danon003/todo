@@ -11,12 +11,12 @@ import java.util.Objects;
 @Setter
 @Embeddable
 public class TaskAssignmentId implements Serializable {
-    private Integer taskId;
-    private Integer userId;
+    private Long taskId;
+    private Long userId;
 
     public TaskAssignmentId() {}
 
-    public TaskAssignmentId(Integer taskId, Integer userId) {
+    public TaskAssignmentId(Long taskId, Long userId) {
         this.taskId = taskId;
         this.userId = userId;
     }

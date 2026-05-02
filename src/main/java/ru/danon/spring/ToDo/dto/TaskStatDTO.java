@@ -6,9 +6,9 @@ import java.util.Map;
 
 @Data
 public class TaskStatDTO {
-    private Integer id;
+    private Long id;
     private String status;
-    private Map<String, Integer> statusStatistics;
-    private Integer userId;
-    private Integer groupId;
+    private Map<String, Long> statusStatistics;
+    private Long userId;
+    private Long groupId;
 }

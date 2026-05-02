@@ -20,7 +20,7 @@ public class CreateVideoMeetingDTO {
 
     private LocalDateTime endTime;
 
-    private Integer groupId;
+    private Long groupId;
 }
 
 

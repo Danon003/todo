@@ -7,13 +7,13 @@ import java.util.List;
 
 @Data
 public class TaskDTO {
-    private Integer id;
+    private Long id;
     private String title;
     private String description;
     private LocalDateTime deadline;
     private String priority;
-    private Integer authorId;
+    private Long authorId;
     private List<TagDTO> tags;
-    private List<Integer> tagIds;
+    private List<Long> tagIds;
     private List<String> tagNames;
 }

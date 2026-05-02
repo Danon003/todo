@@ -23,13 +23,13 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "groups")
+@Table(name = "groups", schema = "task_tracker")
 public class Group {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private int id;
+    private Long id;
 
     @NotNull(message = "Имя группы не должно быть пустым")
     @Size(min = 2, max = 100, message = "Имя группы должно быть от 2 до 100 символов")

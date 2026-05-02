@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class SolutionDTO {
-    private Integer studentId;
+    private Long studentId;
     private String studentName;
     private String fileName;
     private Long fileSize;

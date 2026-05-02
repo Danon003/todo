@@ -57,7 +57,8 @@ public class ReportServiceImpl implements ReportService {
     private final UserGroupRepository userGroupRepository;
     private final CommentRepository commentRepository;
 
-    @Override public byte[] generateReport(ReportRequestDTO request) throws IOException {
+    @Override
+    public byte[] generateReport(ReportRequestDTO request) throws IOException {
         log.info("Генерация отчета: type={}, format={}, period={}",
                 request.getReportType(), request.getFormat(), request.getPeriod());
 
@@ -444,7 +445,7 @@ public class ReportServiceImpl implements ReportService {
         if ("all".equals(request.getGroupId())) {
             assignments = taskAssignmentRepository.findAll();
         } else {
-            Integer groupId = Integer.parseInt(request.getGroupId());
+            Long groupId = Long.getLong(request.getGroupId());
             List<Person> students = userGroupRepository.findByGroupId(groupId)
                     .stream()
                     .map(UserGroup::getUser)
@@ -476,7 +477,7 @@ public class ReportServiceImpl implements ReportService {
         }
 
         if (!"all".equals(request.getGroupId())) {
-            Integer groupId = Integer.parseInt(request.getGroupId());
+            Long groupId = Long.getLong(request.getGroupId());
             Set<Task> groupTasks = new HashSet<>();
             List<Person> students = userGroupRepository.findByGroupId(groupId)
                     .stream()
@@ -508,7 +509,7 @@ public class ReportServiceImpl implements ReportService {
         };
     }
 
-    private String getGroupName(Integer userId) {
+    private String getGroupName(Long userId) {
         try {
             UserGroup userGroup = userGroupRepository.findUserGroupByUser(
                     peopleRepository.findById(userId).orElse(null)

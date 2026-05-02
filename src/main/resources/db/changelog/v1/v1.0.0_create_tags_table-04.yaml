@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: "v1.0.0_create_tags_table-01"
+      author: danon
+      comment: "Create tags table"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                schemaName: "task_tracker"
+                tableName: "tags"
+      changes:
+        - createTable:
+            schemaName: "task_tracker"
+            tableName: "tags"
+            remarks: "Таблица тегов"
+            columns:
+              - column:
+                  name: "id"
+                  type: "BIGINT"
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "Уникальный идентификатор тега"
+              - column:
+                  name: "name"
+                  type: "VARCHAR(50)"
+                  constraints:
+                    nullable: false
+                    unique: true
+                  remarks: "Название тега"
+      rollback:
+        - dropTable:
+            schemaName: "task_tracker"
+            tableName: "tags"

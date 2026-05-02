@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
-import ru.danon.spring.ToDo.dto.MyTaskDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.TagDTO;
 import ru.danon.spring.ToDo.dto.TaskDTO;
@@ -81,7 +80,7 @@ public class TaskMapper {
     /**
      * Task + мапа тегов -> TaskDTO
      */
-    public TaskDTO toDto(Task task, Map<Integer, List<Tag>> tagsByTask) {
+    public TaskDTO toDto(Task task, Map<Long, List<Tag>> tagsByTask) {
         TaskDTO dto = toDto(task);
         if (dto != null && tagsByTask != null) {
             List<Tag> tags = tagsByTask.getOrDefault(task.getId(), Collections.emptyList());
@@ -97,7 +96,7 @@ public class TaskMapper {
     /**
      * Page<Task> + теги -> Page<TaskDTO>
      */
-    public Page<TaskDTO> toDtoPage(Page<Task> page, Map<Integer, List<Tag>> tagsByTask) {
+    public Page<TaskDTO> toDtoPage(Page<Task> page, Map<Long, List<Tag>> tagsByTask) {
         if (page == null) return Page.empty();
         return page.map(task -> toDto(task, tagsByTask));
     }

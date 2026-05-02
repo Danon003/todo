@@ -50,14 +50,14 @@ public class PeopleServiceImpl implements PeopleService {
     }
 
     @Override
-    public Optional<Person> findById(Integer userId) {
+    public Optional<Person> findById(Long userId) {
         log.debug("Поиск пользователя по id: {}", userId);
         return peopleRepository.findById(userId);
     }
 
     @Transactional
     @Override
-    public void deleteById(Integer userId) {
+    public void deleteById(Long userId) {
         log.info("Удаление пользователя id={}", userId);
         peopleRepository.deleteById(userId);
         log.info("Пользователь id={} успешно удален", userId);

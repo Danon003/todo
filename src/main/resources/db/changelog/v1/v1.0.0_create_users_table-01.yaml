@@ -1,47 +1,59 @@
 databaseChangeLog:
   - changeSet:
-      id: 1
-      author: your_name
+      id: "v1.0.0_create_users_table-01"
+      author: danon
+      comment: "Create users table"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                schemaName: "task_tracker"
+                tableName: "users"
       changes:
         - createTable:
-            tableName: users
+            schemaName: "task_tracker"
+            tableName: "users"
             remarks: "Таблица пользователей системы"
             columns:
               - column:
-                  name: id
-                  type: INT
+                  name: "id"
+                  type: "BIGINT"
                   autoIncrement: true
                   constraints:
                     primaryKey: true
                     nullable: false
                   remarks: "Уникальный идентификатор пользователя"
               - column:
-                  name: password
-                  type: VARCHAR(255)
+                  name: "password"
+                  type: "VARCHAR(255)"
                   constraints:
                     nullable: false
                   remarks: "Хэш пароля"
               - column:
-                  name: name
-                  type: VARCHAR(255)
+                  name: "name"
+                  type: "VARCHAR(255)"
                   constraints:
                     nullable: false
                   remarks: "Имя пользователя"
               - column:
-                  name: email
-                  type: VARCHAR(255)
+                  name: "email"
+                  type: "VARCHAR(255)"
                   constraints:
                     nullable: false
                     unique: true
                   remarks: "Email пользователя (уникальный)"
               - column:
-                  name: role
-                  type: VARCHAR(255)
+                  name: "role"
+                  type: "VARCHAR(255)"
                   defaultValue: "STUDENT"
                   constraints:
                     nullable: false
                   remarks: "Роль пользователя: STUDENT, TEACHER, ADMIN"
               - column:
-                  name: created_at
-                  type: TIMESTAMP
+                  name: "created_at"
+                  type: "TIMESTAMP"
                   remarks: "Дата и время регистрации"
+      rollback:
+        - dropTable:
+            schemaName: "task_tracker"
+            tableName: "users"

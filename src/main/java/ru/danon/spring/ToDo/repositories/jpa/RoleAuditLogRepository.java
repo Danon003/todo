@@ -5,5 +5,5 @@ import org.springframework.stereotype.Repository;
 import ru.danon.spring.ToDo.models.postgre.RoleAuditLog;
 
 @Repository
-public interface RoleAuditLogRepository extends JpaRepository<RoleAuditLog, Integer> {
+public interface RoleAuditLogRepository extends JpaRepository<RoleAuditLog, Long> {
 }

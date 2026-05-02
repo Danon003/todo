@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 
 @Data
 public class GroupResponseDTO {
-    private Integer id;
+    private Long id;
     private String name;
     private String description;
-    private Integer teacherId;
+    private Long teacherId;
     private LocalDateTime createdAt;
 }

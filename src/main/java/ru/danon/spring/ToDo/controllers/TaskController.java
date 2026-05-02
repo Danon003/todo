@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.MyTaskDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.StatusDTO;
+import ru.danon.spring.ToDo.dto.BulkAssignRequestDTO;
+import ru.danon.spring.ToDo.dto.TaskPriorityDTO;
 import ru.danon.spring.ToDo.dto.TaskDTO;
 import ru.danon.spring.ToDo.dto.TaskResponseDTO;
 import ru.danon.spring.ToDo.dto.TaskStatDTO;
@@ -79,7 +81,7 @@ public class TaskController {
     })
     public ResponseEntity<Void> deleteTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId) {
+            @PathVariable Long taskId) {
         log.info("Запрос на удаление задачи id={}", taskId);
         taskService.deleteTask(taskId);
         log.info("Задача id={} успешно удалена", taskId);
@@ -104,8 +106,34 @@ public class TaskController {
             return ResponseEntity.ok(Page.empty(pageable));
         }
 
-        List<Integer> taskIds = tasks.getContent().stream().map(Task::getId).toList();
-        Map<Integer, List<ru.danon.spring.ToDo.models.postgre.Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
+        List<Long> taskIds = tasks.getContent().stream().map(Task::getId).toList();
+        Map<Long, List<ru.danon.spring.ToDo.models.postgre.Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
+
+        Page<TaskDTO> dtoPage = taskMapper.toDtoPage(tasks, tagsByTask);
+        log.debug("Получено {} задач из {} всего", dtoPage.getNumberOfElements(), dtoPage.getTotalElements());
+        return ResponseEntity.ok(dtoPage);
+    }
+
+    @GetMapping("/active")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Получить все активные задачи", description = "Возвращает страницу со всеми активными задачами (только для TEACHER)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение списка задач",
+                    content = @Content(schema = @Schema(implementation = TaskDTO.class)))
+    })
+    public ResponseEntity<Page<TaskDTO>> getActiveTasks(
+            @Parameter(description = "Параметры пагинации")
+            @PageableDefault Pageable pageable) {
+        log.info("Запрос на получение всех задач: page={}, size={}",
+                pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<Task> tasks = taskService.findAllActiveTasks(pageable);
+        if (tasks.isEmpty()) {
+            return ResponseEntity.ok(Page.empty(pageable));
+        }
+
+        List<Long> taskIds = tasks.getContent().stream().map(Task::getId).toList();
+        Map<Long, List<ru.danon.spring.ToDo.models.postgre.Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
 
         Page<TaskDTO> dtoPage = taskMapper.toDtoPage(tasks, tagsByTask);
         log.debug("Получено {} задач из {} всего", dtoPage.getNumberOfElements(), dtoPage.getTotalElements());
@@ -122,7 +150,7 @@ public class TaskController {
     })
     public ResponseEntity<TaskDTO> getTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId) {
+            @PathVariable Long taskId) {
         log.info("Запрос на получение задачи id={}", taskId);
         TaskDTO task = taskMapper.toDto(taskService.findTaskById(taskId));
         log.debug("Задача id={} успешно получена", taskId);
@@ -140,7 +168,7 @@ public class TaskController {
             @Parameter(description = "Параметры пагинации")
             @PageableDefault Pageable pageable,
             @Parameter(description = "ID студента", required = true)
-            @PathVariable Integer userId) {
+            @PathVariable Long userId) {
         log.info("Запрос на получение задач студента id={}, page={}, size={}",
                 userId, pageable.getPageNumber(), pageable.getPageSize());
         Page<MyTaskDTO> tasks = taskService.findUserTasks(userId, pageable);
@@ -157,9 +185,9 @@ public class TaskController {
     })
     public ResponseEntity<Void> assignTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskID,
+            @PathVariable Long taskID,
             @Parameter(description = "ID студента", required = true)
-            @PathVariable Integer userId,
+            @PathVariable Long userId,
             Authentication authentication) {
         log.info("Запрос на назначение задачи id={} студенту id={} от преподавателя: {}",
                 taskID, userId, authentication.getName());
@@ -177,15 +205,29 @@ public class TaskController {
     })
     public ResponseEntity<Void> assignTaskForGroup(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskID,
+            @PathVariable Long taskID,
             @Parameter(description = "ID группы", required = true)
-            @PathVariable Integer groupId,
+            @PathVariable Long groupId,
             Authentication authentication) {
         log.info("Запрос на назначение задачи id={} группе id={} от преподавателя: {}",
                 taskID, groupId, authentication.getName());
         taskService.assignTaskForGroup(taskID, groupId, authentication.getName());
         log.info("Задача id={} успешно назначена группе id={}", taskID, groupId);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/assign/groups")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Массово назначить задачи группам", description = "Назначает список задач списку групп")
+    public ResponseEntity<Map<String, Integer>> assignTasksForGroups(
+            @RequestBody BulkAssignRequestDTO request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(taskService.assignTasksForGroups(
+                request.getTaskIds(),
+                request.getGroupIds(),
+                authentication.getName()
+        ));
     }
 
     @GetMapping("/{id}/{taskId}/status")
@@ -197,9 +239,9 @@ public class TaskController {
     })
     public ResponseEntity<TaskStatDTO> getStatusTask(
             @Parameter(description = "ID пользователя или группы", required = true)
-            @PathVariable Integer id,
+            @PathVariable Long id,
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "Тип фильтрации: group или student", required = true, example = "student")
             @RequestParam String filter) {
         log.info("Запрос на получение статуса задачи id={} для {} id={}", taskId, filter, id);
@@ -226,6 +268,23 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
 
+    @GetMapping("/my/active")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Получить мои активные задачи", description = "Возвращает задачи без просроченных с корректной пагинацией")
+    public ResponseEntity<Page<MyTaskDTO>> getMyActiveTasks(
+            @PageableDefault Pageable pageable,
+            Authentication authentication) {
+        return ResponseEntity.ok(taskService.findMyActiveTasks(authentication.getName(), pageable));
+    }
+
+    @DeleteMapping("/my/overdue")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Удалить мои просроченные назначения", description = "Удаляет просроченные назначения текущего студента")
+    public ResponseEntity<Map<String, Integer>> deleteMyOverdueAssignments(Authentication authentication) {
+        int removed = taskService.deleteMyOverdueAssignments(authentication.getName());
+        return ResponseEntity.ok(Map.of("removed", removed));
+    }
+
     @GetMapping("/my/{taskId}")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Получить мою задачу по ID", description = "Возвращает детальную информацию о задаче для студента")
@@ -236,7 +295,7 @@ public class TaskController {
     })
     public ResponseEntity<MyTaskDTO> getMyTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication authentication) {
         log.info("Запрос на получение задачи id={} студентом: {}", taskId, authentication.getName());
         MyTaskDTO task = taskService.findMyTasksById(taskId, authentication.getName());
@@ -253,7 +312,7 @@ public class TaskController {
     })
     public ResponseEntity<StatusDTO> getTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication authentication) {
         log.info("Запрос на получение статуса задачи id={} студентом: {}", taskId, authentication.getName());
         StatusDTO status = taskService.findStatusMyTask(taskId, authentication.getName());
@@ -261,25 +320,15 @@ public class TaskController {
         return ResponseEntity.ok(status);
     }
 
-    @PostMapping("/my/{taskId}/status")
+    @PutMapping("/my/{taskId}/priority")
     @PreAuthorize("hasRole('STUDENT')")
-    @Operation(summary = "Изменить статус моей задачи", description = "Обновляет статус выполнения задачи для студента")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Статус успешно обновлен",
-                    content = @Content(schema = @Schema(implementation = MyTaskDTO.class)))
-    })
-    public ResponseEntity<MyTaskDTO> changeStatusMyTask(
-            @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
-            @Parameter(description = "Новый статус", required = true)
-            @RequestBody StatusDTO statusDTO,
-            Authentication authentication) {
-        log.info("Запрос на изменение статуса задачи id={} на {} студентом: {}",
-                taskId, statusDTO.getUserStatus(), authentication.getName());
-        MyTaskDTO updatedTask = taskService.changeMyTask(taskId, statusDTO.getUserStatus(), authentication.getName());
-        log.info("Статус задачи id={} успешно изменен на {} студентом {}",
-                taskId, statusDTO.getUserStatus(), authentication.getName());
-        return ResponseEntity.ok(updatedTask);
+    @Operation(summary = "Изменить приоритет моей задачи", description = "Обновляет приоритет назначения для текущего студента")
+    public ResponseEntity<MyTaskDTO> changeMyTaskPriority(
+            @PathVariable Long taskId,
+            @RequestBody TaskPriorityDTO priorityDTO,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(taskService.updateMyTaskPriority(taskId, priorityDTO, authentication.getName()));
     }
 
     @PostMapping("/my/{taskId}/share/{userId}")
@@ -291,9 +340,9 @@ public class TaskController {
     })
     public ResponseEntity<Void> shareTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "ID пользователя", required = true)
-            @PathVariable Integer userId,
+            @PathVariable Long userId,
             Authentication authentication) {
         log.info("Запрос на передачу задачи id={} пользователю id={} от студента: {}",
                 taskId, userId, authentication.getName());
@@ -312,7 +361,7 @@ public class TaskController {
     })
     public ResponseEntity<List<PersonResponseDTO>> getListTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             Authentication authentication) {
         log.info("Запрос на получение пользователей с задачей id={} от: {}", taskId, authentication.getName());
         List<PersonResponseDTO> users = taskService.getUsersWithTask(taskId, authentication);
@@ -330,7 +379,7 @@ public class TaskController {
     })
     public ResponseEntity<TaskDTO> updateTask(
             @Parameter(description = "ID задачи", required = true)
-            @PathVariable Integer taskId,
+            @PathVariable Long taskId,
             @Parameter(description = "Обновленные данные задачи", required = true)
             @RequestBody TaskDTO taskDTO,
             Authentication auth) {

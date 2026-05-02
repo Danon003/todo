@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 @Data
 public class LogResponseDTO {
 
-        private Integer id;
+        private Long id;
         private PersonDTO user;
         private String oldRole;
         private String newRole;

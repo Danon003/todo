@@ -16,22 +16,22 @@ public interface GroupService {
 
     Page<GroupResponseDTO> findAll(Authentication auth, Pageable pageable);
 
-    List<Person> getPersonsByGroupId(Integer groupId);
+    List<Person> getPersonsByGroupId(Long groupId);
 
-    List<PersonResponseDTO> getStudentsByGroupId(Integer groupId);
-
-    @Transactional
-    void addStudentToGroup(Integer groupId, Integer studentId);
+    List<PersonResponseDTO> getStudentsByGroupId(Long groupId);
 
     @Transactional
-    void removeStudentFromGroup(Integer groupId, Integer studentId);
+    void addStudentToGroup(Long groupId, Long studentId);
 
     @Transactional
-    void removeGroup(Integer groupId);
+    void removeStudentFromGroup(Long groupId, Long studentId);
 
-    GroupResponseDTO findById(Integer groupId, Authentication auth);
+    @Transactional
+    void removeGroup(Long groupId);
 
-    Integer getUserGroup(String name);
+    GroupResponseDTO findById(Long groupId, Authentication auth);
+
+    Long getUserGroup(String name);
 
     //метод возвращает юзеров препода (собирает назначенные группы преподу и возвращает их юзеров)
     List<Person> findByTeacherId(Authentication auth);

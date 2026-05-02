@@ -10,16 +10,16 @@ import ru.danon.spring.ToDo.models.mongo.Comment;
 import java.util.List;
 
 public interface CommentsService {
-    Page<CommentDTO> getTaskComments(Integer taskId, Pageable pageable);
+    Page<CommentDTO> getTaskComments(Long taskId, Pageable pageable);
 
     @Transactional
-    CommentDTO addComment(Integer taskId, Authentication auth, CommentDTO commentDTO);
+    CommentDTO addComment(Long taskId, Authentication auth, CommentDTO commentDTO);
 
     @Transactional
-    CommentDTO updateComment(String commentId, String content, Integer id);
+    CommentDTO updateComment(String commentId, String content, Long id);
 
     @Transactional
-    void deleteComment(String commentId, Integer id, String role);
+    void deleteComment(String commentId, Long id, String role);
 
     List<Comment> getCommentReplies(String parentId);
 

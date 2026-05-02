@@ -20,13 +20,13 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "role_audit_log")
+@Table(name = "role_audit_log", schema = "task_tracker")
 public class RoleAuditLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private int id;
+    private Long id;
 
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -43,11 +43,11 @@ public class RoleAuditLog {
     @Column(name = "changed_at")
     private LocalDateTime changedAt;
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
