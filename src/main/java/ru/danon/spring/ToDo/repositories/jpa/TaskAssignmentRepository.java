@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 
 @Repository
 public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, TaskAssignmentId> {
@@ -27,6 +28,10 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
     @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
     Page<TaskAssignment> findByUser(Person user, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
+    @Query("SELECT ta FROM TaskAssignment ta WHERE ta.user = :user AND ta.status <> 'OVERDUE'")
+    Page<TaskAssignment> findActiveByUser(@Param("user") Person user, Pageable pageable);
 
     @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
     @Query("SELECT ta FROM TaskAssignment ta WHERE ta.user.id = :userId AND ta.task.id = :taskId")
@@ -69,6 +74,16 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
     @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
     List<TaskAssignment> findByUserIdIn(Collection<Long> userIds);
+
+    @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
+    List<TaskAssignment> findByUserAndStatusNot(Person user, String status, Sort sort);
+
+    @EntityGraph(attributePaths = {"task", "task.author", "task.taskTags", "task.taskTags.tag", "user"})
+    List<TaskAssignment> findByUserAndStatus(Person user, String status, Sort sort);
+
+    @Modifying
+    @Query("DELETE FROM TaskAssignment ta WHERE ta.user.id = :userId AND ta.status = 'OVERDUE'")
+    int deleteOverdueAssignmentsByUserId(@Param("userId") Long userId);
 
     @Query("SELECT ta FROM TaskAssignment ta JOIN ta.task t WHERE ta.assignedBy.id = :teacherId AND ta.status != 'COMPLETED' AND ta.status != 'OVERDUE' AND ta.updated_At < :twoWeeksAgo")
     List<TaskAssignment> findStuckByTeacherId(@Param("teacherId") Long teacherId, @Param("twoWeeksAgo") LocalDateTime twoWeeksAgo);

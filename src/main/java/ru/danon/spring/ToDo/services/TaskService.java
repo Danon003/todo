@@ -9,6 +9,7 @@ import ru.danon.spring.ToDo.dto.MyTaskDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.SolutionDTO;
 import ru.danon.spring.ToDo.dto.StatusDTO;
+import ru.danon.spring.ToDo.dto.TaskPriorityDTO;
 import ru.danon.spring.ToDo.dto.TaskDTO;
 import ru.danon.spring.ToDo.dto.TaskResponseDTO;
 import ru.danon.spring.ToDo.dto.TaskStatDTO;
@@ -17,6 +18,7 @@ import ru.danon.spring.ToDo.models.postgre.TaskFile;
 
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 
 public interface TaskService {
     @Transactional
@@ -55,10 +57,6 @@ public interface TaskService {
     //юзер получает статус конкретной таски
     StatusDTO findStatusMyTask(Long taskId, String currentUsername);
 
-    //юзер меняет статус конкретной таски на переданный status
-    @Transactional
-    MyTaskDTO changeMyTask(Long taskId, String status, String currentUsername);
-
     //юзер делится таской с другим юзером
     @Transactional
     void shareTask(Long taskId, Long userId, String currentUsername);
@@ -91,4 +89,17 @@ public interface TaskService {
     List<SolutionDTO> getAllSolutionsForTask(Long taskId, String teacherUsername);
 
     String getStudentSolutionDownloadUrl(Long taskId, Long studentId, String teacherUsername);
+
+    Page<MyTaskDTO> findMyActiveTasks(String username, Pageable pageable);
+
+    @Transactional
+    int deleteMyOverdueAssignments(String username);
+
+    @Transactional
+    MyTaskDTO updateMyTaskPriority(Long taskId, TaskPriorityDTO taskPriorityDTO, String username);
+
+    @Transactional
+    Map<String, Integer> assignTasksForGroups(List<Long> taskIds, List<Long> groupIds, String currentUsername);
+
+    Page<Task> findAllActiveTasks(Pageable pageable);
 }

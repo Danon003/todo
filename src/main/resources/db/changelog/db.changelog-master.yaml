@@ -26,6 +26,8 @@ databaseChangeLog:
       file: db/changelog/v1/v1.0.0_create_role_audit_log_table-11.yaml
   - include:
       file: db/changelog/v1/v1.0.0_create_kanban_task_table-13.yaml
+  - include:
+      file: db/changelog/v1/v1.0.0_move_priority_to_task_assignments-14.yaml
       #- include:
       #file: db/changelog/v1/v1.0.0_insert_test_data-12.yaml
 

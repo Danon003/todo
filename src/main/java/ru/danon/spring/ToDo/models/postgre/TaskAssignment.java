@@ -48,6 +48,9 @@ public class TaskAssignment {
     @Column(name = "status")
     private String status = "NOT_STARTED";
 
+    @Column(name = "priority")
+    private String priority = "MEDIUM";
+
     @Column(name = "assigned_at", updatable = false)
     private LocalDateTime assignedAt;
 

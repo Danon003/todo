@@ -112,21 +112,6 @@ class TaskControllerWebIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "student1", roles = "STUDENT")
-    void changeMyTaskStatusShouldReturnUpdatedTask() throws Exception {
-        StatusDTO statusDTO = new StatusDTO("DONE");
-        MyTaskDTO updated = new MyTaskDTO(7L, "Task B", "desc", null, "LOW", 2L, "DONE", List.of());
-        when(taskService.changeMyTask(7L, "DONE", "student1")).thenReturn(updated);
-
-        mockMvc.perform(post("/task/my/7/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(statusDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(7L))
-                .andExpect(jsonPath("$.userStatus").value("DONE"));
-    }
-
-    @Test
     @WithMockUser(username = "teacher1", roles = "TEACHER")
     void deleteTaskShouldReturnNoContent() throws Exception {
         doNothing().when(taskService).deleteTask(44L);

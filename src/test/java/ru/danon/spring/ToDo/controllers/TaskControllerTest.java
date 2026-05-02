@@ -102,20 +102,6 @@ class TaskControllerTest {
     }
 
     @Test
-    void changeStatusMyTaskShouldReturnUpdatedTask() {
-        Authentication auth = mock(Authentication.class);
-        when(auth.getName()).thenReturn("student");
-        StatusDTO statusDTO = new StatusDTO("DONE");
-        MyTaskDTO updated = new MyTaskDTO(1L, "title", "desc", null, "HIGH", 2L, "DONE", Collections.emptyList());
-        when(taskService.changeMyTask(5L, "DONE", "student")).thenReturn(updated);
-
-        var response = taskController.changeStatusMyTask(5L, statusDTO, auth);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("DONE", response.getBody().getUserStatus());
-    }
-
-    @Test
     void updateTaskShouldMapAndReturnDto() {
         Authentication auth = mock(Authentication.class);
         when(auth.getName()).thenReturn("teacher");

@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.danon.spring.ToDo.dto.MyTaskDTO;
 import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.StatusDTO;
+import ru.danon.spring.ToDo.dto.BulkAssignRequestDTO;
+import ru.danon.spring.ToDo.dto.TaskPriorityDTO;
 import ru.danon.spring.ToDo.dto.TaskDTO;
 import ru.danon.spring.ToDo.dto.TaskResponseDTO;
 import ru.danon.spring.ToDo.dto.TaskStatDTO;
@@ -100,6 +102,32 @@ public class TaskController {
                 pageable.getPageNumber(), pageable.getPageSize());
 
         Page<Task> tasks = taskService.findAllTasks(pageable);
+        if (tasks.isEmpty()) {
+            return ResponseEntity.ok(Page.empty(pageable));
+        }
+
+        List<Long> taskIds = tasks.getContent().stream().map(Task::getId).toList();
+        Map<Long, List<ru.danon.spring.ToDo.models.postgre.Tag>> tagsByTask = tagService.getTaskTagsBatch(taskIds);
+
+        Page<TaskDTO> dtoPage = taskMapper.toDtoPage(tasks, tagsByTask);
+        log.debug("Получено {} задач из {} всего", dtoPage.getNumberOfElements(), dtoPage.getTotalElements());
+        return ResponseEntity.ok(dtoPage);
+    }
+
+    @GetMapping("/active")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Получить все активные задачи", description = "Возвращает страницу со всеми активными задачами (только для TEACHER)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешное получение списка задач",
+                    content = @Content(schema = @Schema(implementation = TaskDTO.class)))
+    })
+    public ResponseEntity<Page<TaskDTO>> getActiveTasks(
+            @Parameter(description = "Параметры пагинации")
+            @PageableDefault Pageable pageable) {
+        log.info("Запрос на получение всех задач: page={}, size={}",
+                pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<Task> tasks = taskService.findAllActiveTasks(pageable);
         if (tasks.isEmpty()) {
             return ResponseEntity.ok(Page.empty(pageable));
         }
@@ -188,6 +216,20 @@ public class TaskController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/assign/groups")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Массово назначить задачи группам", description = "Назначает список задач списку групп")
+    public ResponseEntity<Map<String, Integer>> assignTasksForGroups(
+            @RequestBody BulkAssignRequestDTO request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(taskService.assignTasksForGroups(
+                request.getTaskIds(),
+                request.getGroupIds(),
+                authentication.getName()
+        ));
+    }
+
     @GetMapping("/{id}/{taskId}/status")
     @PreAuthorize("hasRole('TEACHER')")
     @Operation(summary = "Получить статус выполнения задачи", description = "Возвращает статистику выполнения задачи для группы или студента")
@@ -226,6 +268,23 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
 
+    @GetMapping("/my/active")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Получить мои активные задачи", description = "Возвращает задачи без просроченных с корректной пагинацией")
+    public ResponseEntity<Page<MyTaskDTO>> getMyActiveTasks(
+            @PageableDefault Pageable pageable,
+            Authentication authentication) {
+        return ResponseEntity.ok(taskService.findMyActiveTasks(authentication.getName(), pageable));
+    }
+
+    @DeleteMapping("/my/overdue")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Удалить мои просроченные назначения", description = "Удаляет просроченные назначения текущего студента")
+    public ResponseEntity<Map<String, Integer>> deleteMyOverdueAssignments(Authentication authentication) {
+        int removed = taskService.deleteMyOverdueAssignments(authentication.getName());
+        return ResponseEntity.ok(Map.of("removed", removed));
+    }
+
     @GetMapping("/my/{taskId}")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Получить мою задачу по ID", description = "Возвращает детальную информацию о задаче для студента")
@@ -261,25 +320,15 @@ public class TaskController {
         return ResponseEntity.ok(status);
     }
 
-    @PostMapping("/my/{taskId}/status")
+    @PutMapping("/my/{taskId}/priority")
     @PreAuthorize("hasRole('STUDENT')")
-    @Operation(summary = "Изменить статус моей задачи", description = "Обновляет статус выполнения задачи для студента")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Статус успешно обновлен",
-                    content = @Content(schema = @Schema(implementation = MyTaskDTO.class)))
-    })
-    public ResponseEntity<MyTaskDTO> changeStatusMyTask(
-            @Parameter(description = "ID задачи", required = true)
+    @Operation(summary = "Изменить приоритет моей задачи", description = "Обновляет приоритет назначения для текущего студента")
+    public ResponseEntity<MyTaskDTO> changeMyTaskPriority(
             @PathVariable Long taskId,
-            @Parameter(description = "Новый статус", required = true)
-            @RequestBody StatusDTO statusDTO,
-            Authentication authentication) {
-        log.info("Запрос на изменение статуса задачи id={} на {} студентом: {}",
-                taskId, statusDTO.getUserStatus(), authentication.getName());
-        MyTaskDTO updatedTask = taskService.changeMyTask(taskId, statusDTO.getUserStatus(), authentication.getName());
-        log.info("Статус задачи id={} успешно изменен на {} студентом {}",
-                taskId, statusDTO.getUserStatus(), authentication.getName());
-        return ResponseEntity.ok(updatedTask);
+            @RequestBody TaskPriorityDTO priorityDTO,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(taskService.updateMyTaskPriority(taskId, priorityDTO, authentication.getName()));
     }
 
     @PostMapping("/my/{taskId}/share/{userId}")

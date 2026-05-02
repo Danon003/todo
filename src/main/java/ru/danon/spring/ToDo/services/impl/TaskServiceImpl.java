@@ -2,10 +2,12 @@ package ru.danon.spring.ToDo.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import ru.danon.spring.ToDo.dto.PersonResponseDTO;
 import ru.danon.spring.ToDo.dto.SolutionDTO;
 import ru.danon.spring.ToDo.dto.StatusDTO;
 import ru.danon.spring.ToDo.dto.TagDTO;
+import ru.danon.spring.ToDo.dto.TaskPriorityDTO;
 import ru.danon.spring.ToDo.dto.TaskDTO;
 import ru.danon.spring.ToDo.dto.TaskResponseDTO;
 import ru.danon.spring.ToDo.dto.TaskStatDTO;
@@ -29,6 +32,7 @@ import ru.danon.spring.ToDo.models.postgre.TaskAssignment;
 import ru.danon.spring.ToDo.models.postgre.TaskFile;
 import ru.danon.spring.ToDo.models.postgre.id.TaskAssignmentId;
 import ru.danon.spring.ToDo.repositories.jpa.TaskAssignmentRepository;
+import ru.danon.spring.ToDo.repositories.jpa.KanbanTaskRepository;
 import ru.danon.spring.ToDo.repositories.jpa.TaskRepository;
 import ru.danon.spring.ToDo.repositories.jpa.TaskTagRepository;
 import ru.danon.spring.ToDo.services.FileStorageService;
@@ -49,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -56,12 +61,14 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 @Slf4j
 public class TaskServiceImpl implements TaskService {
+    private static final Set<String> ALLOWED_PRIORITY = Set.of("HIGH", "MEDIUM", "LOW");
 
     private final PeopleService peopleService;
     private final GroupService groupServiceImpl;
     private final TaskRepository taskRepository;
     private final TaskTagRepository taskTagRepository;
     private final TaskAssignmentRepository taskAssignmentRepository;
+    private final KanbanTaskRepository kanbanTaskRepository;
     private final NotificationProducerService notificationProducerServiceImpl;
     private final TaskMapper taskMapper;
     private final TagService tagServiceImpl;
@@ -84,7 +91,7 @@ public class TaskServiceImpl implements TaskService {
         task.setTitle(taskDTO.getTitle());
         task.setDescription(taskDTO.getDescription());
         task.setDeadline(taskDTO.getDeadline());
-        task.setPriority(taskDTO.getPriority());
+        task.setPriority("MEDIUM");
         task.setAuthor(author);
         task.setCreatedAt(LocalDateTime.now());
 
@@ -164,6 +171,7 @@ public class TaskServiceImpl implements TaskService {
     //назначить таску юзеру(функция для препода)
     @Transactional
     @Override
+    @CacheEvict(cacheNames = {"studentActiveTasks", "kanbanBoard"}, allEntries = true)
     public void assignTask(Long taskId, Long userId, String currentUsername) {
         log.info("Назначение задачи id={} пользователю id={} преподавателем: {}", taskId, userId, currentUsername);
 
@@ -202,6 +210,7 @@ public class TaskServiceImpl implements TaskService {
         taskAssignment.setAssignedBy(assignedBy);
         taskAssignment.setAssignedAt(LocalDateTime.now());
         taskAssignment.setUpdated_At(LocalDateTime.now());
+        taskAssignment.setPriority(resolveAssignmentPriority(task, null));
 
         notificationSchedulingServiceImpl.scheduleTaskNotifications(taskAssignment);
         taskAssignmentRepository.save(taskAssignment);
@@ -220,6 +229,7 @@ public class TaskServiceImpl implements TaskService {
     //назначить таску группе по её Id (функция для препода)
     @Transactional
     @Override
+    @CacheEvict(cacheNames = {"studentActiveTasks", "kanbanBoard"}, allEntries = true)
     public void assignTaskForGroup(Long taskID, Long groupId, String currentUsername) {
         log.info("Назначение задачи id={} группе id={} преподавателем: {}", taskID, groupId, currentUsername);
 
@@ -305,40 +315,21 @@ public class TaskServiceImpl implements TaskService {
         Page<TaskAssignment> assignments = taskAssignmentRepository.findByUser(user, pageable);
         if (assignments.isEmpty())
             return Page.empty(pageable);
+        Page<MyTaskDTO> result = mapAssignmentsToMyTaskPage(assignments);
+        log.debug("Найдено {} задач для пользователя {}", result.getNumberOfElements(), username);
+        return result;
+    }
 
-        List<Long> taskIds = assignments.getContent().stream()
-                .map(TaskAssignment::getTask)
-                .filter(Objects::nonNull)
-                .map(Task::getId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-
-        Map<Long, List<Tag>> tagsByTask = tagServiceImpl.getTaskTagsBatch(taskIds);
-
-        List<MyTaskDTO> tasks = assignments.getContent().stream().
-                map(assignment -> {
-                    Task task = assignment.getTask();
-                    String status = assignment.getStatus();
-                    Long authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
-                    List<TagDTO> tags = toTagDTOs(tagsByTask.getOrDefault(task.getId(), Collections.emptyList()));
-
-                    return new MyTaskDTO(
-                            task.getId(),
-                            task.getTitle(),
-                            task.getDescription(),
-                            task.getDeadline(),
-                            task.getPriority(),
-                            authorId,
-                            status,
-                            tags
-                    );
-                }).toList();
-
-        log.debug("Найдено {} задач для пользователя {}", tasks.size(), username);
-        return new PageImpl<>(tasks,
-                assignments.getPageable(),
-                assignments.getTotalElements());
+    @Override
+    @Cacheable(cacheNames = "studentActiveTasks", key = "#username + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    public Page<MyTaskDTO> findMyActiveTasks(String username, Pageable pageable) {
+        Person user = peopleService.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: ", username));
+        Page<TaskAssignment> assignments = taskAssignmentRepository.findActiveByUser(user, pageable);
+        if (assignments.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return mapAssignmentsToMyTaskPage(assignments);
     }
 
 
@@ -356,41 +347,9 @@ public class TaskServiceImpl implements TaskService {
         if (assignments.isEmpty()) {
             return Page.empty(pageable);
         }
-        List<Long> taskIds = assignments.getContent().stream()
-                .map(TaskAssignment::getTask)
-                .filter(Objects::nonNull)
-                .map(Task::getId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-
-        Map<Long, List<Tag>> tagsByTask = tagServiceImpl.getTaskTagsBatch(taskIds);
-
-        List<MyTaskDTO> content = assignments.getContent().stream().
-                map(assignment -> {
-                    Task task = assignment.getTask();
-                    String status = assignment.getStatus();
-                    Long authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
-                    List<TagDTO> tags = toTagDTOs(tagsByTask.getOrDefault(task.getId(), Collections.emptyList()));
-
-                    return new MyTaskDTO(
-                            task.getId(),
-                            task.getTitle(),
-                            task.getDescription(),
-                            task.getDeadline(),
-                            task.getPriority(),
-                            authorId,
-                            status,
-                            tags
-                    );
-                }).toList();
-
-        log.debug("Найдено {} задач для пользователя id={}", content.size(), userId);
-        return new PageImpl<>(
-                content,
-                assignments.getPageable(),
-                assignments.getTotalElements()
-        );
+        Page<MyTaskDTO> result = mapAssignmentsToMyTaskPage(assignments);
+        log.debug("Найдено {} задач для пользователя id={}", result.getNumberOfElements(), userId);
+        return result;
     }
 
     //юзер ищет свою конкретную таску
@@ -430,7 +389,7 @@ public class TaskServiceImpl implements TaskService {
                 task.getTitle(),
                 task.getDescription(),
                 task.getDeadline(),
-                task.getPriority(),
+                normalizePriority(resolveAssignmentPriority(task, assignment.getPriority())),
                 authorId,
                 status,
                 tags
@@ -453,49 +412,6 @@ public class TaskServiceImpl implements TaskService {
 
         String status = assignment.getStatus();
         return new StatusDTO(status);
-    }
-
-    //юзер меняет статус конкретной таски на переданный status
-    @Transactional
-    @Override
-    public MyTaskDTO changeMyTask(Long taskId, String status, String currentUsername) {
-        log.info("Изменение статуса задачи id={} на {} пользователем: {}", taskId, status, currentUsername);
-
-        Long myId = peopleService.findByUsername(currentUsername).get().getId();
-        TaskAssignmentId id = new TaskAssignmentId(taskId, myId);
-
-        TaskAssignment assignment = taskAssignmentRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Задача id={} не назначена пользователю {}", taskId, currentUsername);
-                    return new EntityNotFoundException("Task not found or not assigned to you");
-                });
-
-        String oldStatus = assignment.getStatus();
-        assignment.setStatus(status);
-        assignment.setUpdated_At(LocalDateTime.now());
-        taskAssignmentRepository.save(assignment);
-
-        log.info("Статус задачи id={} изменен с {} на {} пользователем {}", taskId, oldStatus, status, currentUsername);
-
-        if ("COMPLETED".equals(status) && !"COMPLETED".equals(oldStatus)) {
-            notificationSchedulingServiceImpl.cancelTaskNotifications(taskId, myId);
-        }
-
-        Task task = assignment.getTask();
-        Long authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
-
-        List<TagDTO> tags = toTagDTOs(tagServiceImpl.getTaskTags(task.getId()));
-
-        return new MyTaskDTO(
-                task.getId(),
-                task.getTitle(),
-                task.getDescription(),
-                task.getDeadline(),
-                task.getPriority(),
-                authorId,
-                status,
-                tags
-        );
     }
 
     //юзер делится таской с другим юзером
@@ -526,6 +442,67 @@ public class TaskServiceImpl implements TaskService {
         log.info("Задача id={} успешно передана от {} пользователю id={}", taskId, currentUsername, userId);
     }
 
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = {"studentActiveTasks", "kanbanBoard"}, allEntries = true)
+    public int deleteMyOverdueAssignments(String username) {
+        Person user = peopleService.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: ", username));
+        List<TaskAssignment> overdue = taskAssignmentRepository.findByUserAndStatus(
+                user,
+                "OVERDUE",
+                Sort.by(Sort.Direction.ASC, "taskId")
+        );
+        overdue.forEach(a -> kanbanTaskRepository.deleteByUserIdAndTaskId(user.getId(), a.getTaskId()));
+        return taskAssignmentRepository.deleteOverdueAssignmentsByUserId(user.getId());
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = {"studentActiveTasks", "kanbanBoard"}, allEntries = true)
+    public MyTaskDTO updateMyTaskPriority(Long taskId, TaskPriorityDTO taskPriorityDTO, String username) {
+        String normalizedPriority = normalizePriority(taskPriorityDTO.getPriority());
+        Person user = peopleService.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User not found", username));
+        TaskAssignment assignment = taskAssignmentRepository
+                .findById(new TaskAssignmentId(taskId, user.getId()))
+                .orElseThrow(() -> new EntityNotFoundException("Task not found or not assigned to you"));
+        assignment.setPriority(normalizedPriority);
+        assignment.setUpdated_At(LocalDateTime.now());
+        taskAssignmentRepository.save(assignment);
+        return findMyTasksById(taskId, username);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = {"studentActiveTasks", "kanbanBoard"}, allEntries = true)
+    public Map<String, Integer> assignTasksForGroups(List<Long> taskIds, List<Long> groupIds, String currentUsername) {
+        if (taskIds == null || taskIds.isEmpty() || groupIds == null || groupIds.isEmpty()) {
+            throw new IllegalArgumentException("Нужно передать taskIds и groupIds");
+        }
+        int created = 0;
+        int skipped = 0;
+        for (Long taskId : taskIds) {
+            for (Long groupId : groupIds) {
+                List<Person> groupMembers = groupServiceImpl.getPersonsByGroupId(groupId);
+                for (Person member : groupMembers) {
+                    if (taskAssignmentRepository.existsById(new TaskAssignmentId(taskId, member.getId()))) {
+                        skipped++;
+                        continue;
+                    }
+                    assignTask(taskId, member.getId(), currentUsername);
+                    created++;
+                }
+            }
+        }
+        return Map.of("created", created, "skipped", skipped);
+    }
+
+    @Override
+    public Page<Task> findAllActiveTasks(Pageable pageable) {
+        log.debug("Получение активных задач");
+        return taskRepository.findActiveTasks(pageable);
+    }
 
     @Override
     public Set<TaskResponseDTO> getGroupTasks(Long groupId) {
@@ -555,6 +532,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Transactional
     @Override
+    @CacheEvict(cacheNames = {"studentActiveTasks", "kanbanBoard"}, allEntries = true)
     public void updateOverdueTasks() {
         LocalDateTime now = LocalDateTime.now();
         log.debug("Проверка просроченных задач, время: {}", now);
@@ -679,7 +657,7 @@ public class TaskServiceImpl implements TaskService {
         oldTask.setTitle(task.getTitle());
         oldTask.setDescription(task.getDescription());
         oldTask.setDeadline(task.getDeadline());
-        oldTask.setPriority(task.getPriority());
+        oldTask.setPriority("MEDIUM");
 
         Task updatedTask = taskRepository.save(oldTask);
         updateTaskTags(updatedTask, task);
@@ -760,6 +738,7 @@ public class TaskServiceImpl implements TaskService {
      */
     @Transactional
     @Override
+    @CacheEvict(cacheNames = {"studentActiveTasks", "kanbanBoard"}, allEntries = true)
     public void uploadSolution(Long taskId, MultipartFile file, String username) {
         log.info("Загрузка решения к задаче id={} студентом: {}", taskId, username);
 
@@ -803,6 +782,7 @@ public class TaskServiceImpl implements TaskService {
         assignment.setSolutionFileSize(file.getSize());
         assignment.setSolutionUploadedAt(LocalDateTime.now());
         assignment.setStatus("COMPLETED");
+        assignment.setUpdated_At(LocalDateTime.now());
 
         taskAssignmentRepository.save(assignment);
 
@@ -932,6 +912,7 @@ public class TaskServiceImpl implements TaskService {
      */
     @Transactional
     @Override
+    @CacheEvict(cacheNames = {"studentActiveTasks", "kanbanBoard"}, allEntries = true)
     public void deleteSolution(Long taskId, String username) {
         log.info("Удаление решения к задаче id={} студентом: {}", taskId, username);
 
@@ -974,6 +955,7 @@ public class TaskServiceImpl implements TaskService {
             assignment.setTeacherComment(null);
         }
         assignment.setStatus("IN_PROGRESS");
+        assignment.setUpdated_At(LocalDateTime.now());
         taskAssignmentRepository.save(assignment);
 
         log.info("Решение успешно удалено: задача id={}, студент {}", taskId, username);
@@ -1065,6 +1047,53 @@ public class TaskServiceImpl implements TaskService {
         }
 
         return fileStorageServiceImpl.generateDownloadUrl(assignment.getSolutionFilePath());
+    }
+
+    private Page<MyTaskDTO> mapAssignmentsToMyTaskPage(Page<TaskAssignment> assignments) {
+        List<Long> taskIds = assignments.getContent().stream()
+                .map(TaskAssignment::getTask)
+                .filter(Objects::nonNull)
+                .map(Task::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, List<Tag>> tagsByTask = tagServiceImpl.getTaskTagsBatch(taskIds);
+        List<MyTaskDTO> content = assignments.getContent().stream()
+                .map(assignment -> {
+                    Task task = assignment.getTask();
+                    Long authorId = task.getAuthor() != null ? task.getAuthor().getId() : null;
+                    List<TagDTO> tags = toTagDTOs(tagsByTask.getOrDefault(task.getId(), Collections.emptyList()));
+                    return new MyTaskDTO(
+                            task.getId(),
+                            task.getTitle(),
+                            task.getDescription(),
+                            task.getDeadline(),
+                            normalizePriority(resolveAssignmentPriority(task, assignment.getPriority())),
+                            authorId,
+                            assignment.getStatus(),
+                            tags
+                    );
+                }).toList();
+        return new PageImpl<>(content, assignments.getPageable(), assignments.getTotalElements());
+    }
+
+    private String resolveAssignmentPriority(Task task, String assignmentPriority) {
+        if (assignmentPriority != null && ALLOWED_PRIORITY.contains(assignmentPriority.toUpperCase(Locale.ROOT))) {
+            return assignmentPriority.toUpperCase(Locale.ROOT);
+        }
+        if (task != null && task.getPriority() != null && ALLOWED_PRIORITY.contains(task.getPriority().toUpperCase(Locale.ROOT))) {
+            return task.getPriority().toUpperCase(Locale.ROOT);
+        }
+        return "MEDIUM";
+    }
+
+    private String normalizePriority(String rawPriority) {
+        String normalized = rawPriority == null ? "MEDIUM" : rawPriority.toUpperCase(Locale.ROOT);
+        if (!ALLOWED_PRIORITY.contains(normalized)) {
+            throw new IllegalArgumentException("Допустимые значения priority: HIGH, MEDIUM, LOW");
+        }
+        return normalized;
     }
 
 
